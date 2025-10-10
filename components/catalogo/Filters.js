@@ -34,7 +34,7 @@ export default function Filters({ filters, onFilterChange, onClearFilters }) {
             ))}
           </select>
         </div>
-
+ 
         {/* Filtro por Categoría */}
         <div>
           <label className="block text-sm font-light text-gray-700 mb-2 uppercase tracking-wider">
