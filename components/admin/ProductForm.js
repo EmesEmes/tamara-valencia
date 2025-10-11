@@ -1,66 +1,95 @@
-"use client";
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase/client";
-import {
-  TIPOS_PRODUCTO,
-  CATEGORIAS_PRODUCTO,
-  MATERIALES_PRODUCTO,
-} from "@/lib/constants";
-import ImageUploader from "./ImageUploader";
+'use client';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { supabase, getFactores } from '@/lib/supabase/client';
+import { TIPOS_PRODUCTO, CATEGORIAS_PRODUCTO, MATERIALES_PRODUCTO } from '@/lib/constants';
+import ImageUploader from './ImageUploader';
 
 export default function ProductForm({ producto = null }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [conjuntos, setConjuntos] = useState([]);
+  const [factores, setFactores] = useState([]);
+  const [precioCalculado, setPrecioCalculado] = useState(0);
   const [formData, setFormData] = useState({
-    codigo: "",
-    tipo: "",
-    categoria: "",
-    nombre_comercial: "",
-    material: "",
-    peso: "",
-    precio: "",
-    descripcion: "",
-    id_conjunto: "",
+    codigo: '',
+    tipo: '',
+    categoria: '',
+    nombre_comercial: '',
+    material: '',
+    peso: '',
+    descripcion: '',
+    observaciones: '',
+    talla: '',
+    id_conjunto: '',
+    id_factor: '',
     activo: true,
-    imagen_url: "",
-    imagen_public_id: "",
+    imagen_url: '',
+    imagen_public_id: '',
     stock: 1,
   });
 
   useEffect(() => {
     fetchConjuntos();
+    fetchFactores();
     if (producto) {
       setFormData({
-        codigo: producto.codigo || "",
-        tipo: producto.tipo || "",
-        categoria: producto.categoria || "",
-        nombre_comercial: producto.nombre_comercial || "",
-        material: producto.material || "",
-        peso: producto.peso || "",
-        precio: producto.precio || "",
-        descripcion: producto.descripcion || "",
-        id_conjunto: producto.id_conjunto || "",
+        codigo: producto.codigo || '',
+        tipo: producto.tipo || '',
+        categoria: producto.categoria || '',
+        nombre_comercial: producto.nombre_comercial || '',
+        material: producto.material || '',
+        peso: producto.peso || '',
+        descripcion: producto.descripcion || '',
+        observaciones: producto.observaciones || '',
+        talla: producto.talla || '',
+        id_conjunto: producto.id_conjunto || '',
+        id_factor: producto.id_factor || '',
         activo: producto.activo ?? true,
-        imagen_url: producto.imagen_url || "",
-        imagen_public_id: producto.imagen_public_id || "",
+        imagen_url: producto.imagen_url || '',
+        imagen_public_id: producto.imagen_public_id || '',
         stock: producto.stock ?? 1,
       });
     }
   }, [producto]);
 
+  // Calcular precio cuando cambia peso o factor
+  useEffect(() => {
+    calcularPrecio();
+  }, [formData.peso, formData.id_factor, factores]);
+
   const fetchConjuntos = async () => {
     try {
       const { data, error } = await supabase
-        .from("conjuntos")
-        .select("*")
-        .order("nombre");
+        .from('conjuntos')
+        .select('*')
+        .order('nombre');
 
       if (error) throw error;
       setConjuntos(data);
     } catch (error) {
-      console.error("Error al cargar conjuntos:", error);
+      console.error('Error al cargar conjuntos:', error);
+    }
+  };
+
+  const fetchFactores = async () => {
+    try {
+      const data = await getFactores();
+      setFactores(data);
+    } catch (error) {
+      console.error('Error al cargar factores:', error);
+    }
+  };
+
+  const calcularPrecio = () => {
+    const peso = parseFloat(formData.peso) || 0;
+    const factor = factores.find(f => f.id === formData.id_factor);
+    
+    if (peso > 0 && factor) {
+      const precio = peso * parseFloat(factor.valor);
+      setPrecioCalculado(precio.toFixed(2));
+    } else {
+      setPrecioCalculado(0);
     }
   };
 
@@ -68,7 +97,7 @@ export default function ProductForm({ producto = null }) {
     const { name, value, type, checked } = e.target;
     setFormData({
       ...formData,
-      [name]: type === "checkbox" ? checked : value,
+      [name]: type === 'checkbox' ? checked : value
     });
   };
 
@@ -76,23 +105,22 @@ export default function ProductForm({ producto = null }) {
     setFormData({
       ...formData,
       imagen_url: imageUrl,
-      imagen_public_id: publicId,
+      imagen_public_id: publicId
     });
   };
 
   const validateCodigo = async (codigo) => {
-    // Si estamos editando y el código no cambió, no validar
     if (producto && producto.codigo === codigo) {
       return true;
     }
 
     const { data, error } = await supabase
-      .from("productos")
-      .select("codigo")
-      .eq("codigo", codigo)
+      .from('productos')
+      .select('codigo')
+      .eq('codigo', codigo)
       .single();
 
-    return !data; // Retorna true si NO existe
+    return !data;
   };
 
   const handleSubmit = async (e) => {
@@ -103,45 +131,66 @@ export default function ProductForm({ producto = null }) {
       // Validar código duplicado
       const codigoValido = await validateCodigo(formData.codigo);
       if (!codigoValido) {
-        alert("El código ya existe. Por favor, usa otro código.");
+        alert('El código ya existe. Por favor, usa otro código.');
+        setLoading(false);
+        return;
+      }
+
+      // Validar que tenga peso y factor para calcular precio
+      if (!formData.peso || parseFloat(formData.peso) <= 0) {
+        alert('El peso debe ser mayor a 0');
+        setLoading(false);
+        return;
+      }
+
+      if (!formData.id_factor) {
+        alert('Debes seleccionar un factor');
         setLoading(false);
         return;
       }
 
       const dataToSave = {
         ...formData,
-        peso: formData.peso ? parseFloat(formData.peso) : null,
-        precio: parseFloat(formData.precio),
+        peso: parseFloat(formData.peso),
         stock: parseInt(formData.stock),
         id_conjunto: formData.id_conjunto || null,
+        id_factor: formData.id_factor || null,
       };
+
+      // Eliminar campos que no existen en la BD
+      delete dataToSave.imagen_url;
+      delete dataToSave.imagen_public_id;
+
+      // Agregar campos de imagen si existen
+      if (formData.imagen_url) {
+        dataToSave.imagen_url = formData.imagen_url;
+        dataToSave.imagen_public_id = formData.imagen_public_id;
+      }
 
       let error;
 
       if (producto) {
         // Actualizar
         const result = await supabase
-          .from("productos")
+          .from('productos')
           .update(dataToSave)
-          .eq("id", producto.id);
+          .eq('id', producto.id);
         error = result.error;
       } else {
         // Crear
-        const result = await supabase.from("productos").insert([dataToSave]);
+        const result = await supabase
+          .from('productos')
+          .insert([dataToSave]);
         error = result.error;
       }
 
       if (error) throw error;
 
-      alert(
-        producto
-          ? "Producto actualizado exitosamente"
-          : "Producto creado exitosamente"
-      );
-      router.push("/admin/productos");
+      alert(producto ? 'Producto actualizado exitosamente' : 'Producto creado exitosamente');
+      router.push('/admin/productos');
     } catch (error) {
-      console.error("Error al guardar producto:", error);
-      alert("Error al guardar el producto");
+      console.error('Error al guardar producto:', error);
+      alert('Error al guardar el producto: ' + error.message);
     } finally {
       setLoading(false);
     }
@@ -150,9 +199,7 @@ export default function ProductForm({ producto = null }) {
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="bg-white p-6 border border-gray-200">
-        <h2 className="text-xl font-light text-gray-900 mb-6">
-          Información Básica
-        </h2>
+        <h2 className="text-xl font-light text-gray-900 mb-6">Información Básica</h2>
 
         <div className="grid md:grid-cols-2 gap-6">
           <div>
@@ -197,7 +244,7 @@ export default function ProductForm({ producto = null }) {
               className="w-full px-4 py-2 border border-gray-300 focus:outline-none focus:border-gray-500"
             >
               <option value="">Seleccionar</option>
-              {TIPOS_PRODUCTO.map((tipo) => (
+              {TIPOS_PRODUCTO.map(tipo => (
                 <option key={tipo.value} value={tipo.value}>
                   {tipo.label}
                 </option>
@@ -217,7 +264,7 @@ export default function ProductForm({ producto = null }) {
               className="w-full px-4 py-2 border border-gray-300 focus:outline-none focus:border-gray-500"
             >
               <option value="">Seleccionar</option>
-              {CATEGORIAS_PRODUCTO.map((categoria) => (
+              {CATEGORIAS_PRODUCTO.map(categoria => (
                 <option key={categoria.value} value={categoria.value}>
                   {categoria.label}
                 </option>
@@ -237,12 +284,26 @@ export default function ProductForm({ producto = null }) {
               className="w-full px-4 py-2 border border-gray-300 focus:outline-none focus:border-gray-500"
             >
               <option value="">Seleccionar</option>
-              {MATERIALES_PRODUCTO.map((material) => (
+              {MATERIALES_PRODUCTO.map(material => (
                 <option key={material.value} value={material.value}>
                   {material.label}
                 </option>
               ))}
             </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-light text-gray-700 mb-2 uppercase tracking-wider">
+              Talla
+            </label>
+            <input
+              type="text"
+              name="talla"
+              value={formData.talla}
+              onChange={handleChange}
+              className="w-full px-4 py-2 border border-gray-300 focus:outline-none focus:border-gray-500"
+              placeholder="Ej: 6, 7, Ajustable"
+            />
           </div>
 
           <div>
@@ -256,7 +317,7 @@ export default function ProductForm({ producto = null }) {
               className="w-full px-4 py-2 border border-gray-300 focus:outline-none focus:border-gray-500"
             >
               <option value="">Sin conjunto</option>
-              {conjuntos.map((conjunto) => (
+              {conjuntos.map(conjunto => (
                 <option key={conjunto.id} value={conjunto.id}>
                   {conjunto.nombre}
                 </option>
@@ -264,21 +325,6 @@ export default function ProductForm({ producto = null }) {
             </select>
           </div>
 
-          <div>
-            <label className="block text-sm font-light text-gray-700 mb-2 uppercase tracking-wider">
-              Peso (gramos)
-            </label>
-            <input
-              type="number"
-              name="peso"
-              value={formData.peso}
-              onChange={handleChange}
-              step="0.01"
-              min="0"
-              className="w-full px-4 py-2 border border-gray-300 focus:outline-none focus:border-gray-500"
-              placeholder="2.5"
-            />
-          </div>
           <div>
             <label className="block text-sm font-light text-gray-700 mb-2 uppercase tracking-wider">
               Stock *
@@ -297,22 +343,6 @@ export default function ProductForm({ producto = null }) {
               Cantidad disponible en inventario
             </p>
           </div>
-          <div>
-            <label className="block text-sm font-light text-gray-700 mb-2 uppercase tracking-wider">
-              Precio * ($)
-            </label>
-            <input
-              type="number"
-              name="precio"
-              value={formData.precio}
-              onChange={handleChange}
-              required
-              step="0.01"
-              min="0"
-              className="w-full px-4 py-2 border border-gray-300 focus:outline-none focus:border-gray-500"
-              placeholder="150.00"
-            />
-          </div>
         </div>
 
         <div className="mt-6">
@@ -326,6 +356,20 @@ export default function ProductForm({ producto = null }) {
             rows="4"
             className="w-full px-4 py-2 border border-gray-300 focus:outline-none focus:border-gray-500 resize-none"
             placeholder="Descripción detallada del producto..."
+          ></textarea>
+        </div>
+
+        <div className="mt-6">
+          <label className="block text-sm font-light text-gray-700 mb-2 uppercase tracking-wider">
+            Observaciones
+          </label>
+          <textarea
+            name="observaciones"
+            value={formData.observaciones}
+            onChange={handleChange}
+            rows="3"
+            className="w-full px-4 py-2 border border-gray-300 focus:outline-none focus:border-gray-500 resize-none"
+            placeholder="Notas adicionales internas..."
           ></textarea>
         </div>
 
@@ -343,21 +387,76 @@ export default function ProductForm({ producto = null }) {
         </div>
       </div>
 
+      {/* Sección de Precio */}
       <div className="bg-white p-6 border border-gray-200">
-        <h2 className="text-xl font-light text-gray-900 mb-6">
-          Imagen del Producto
-        </h2>
+        <h2 className="text-xl font-light text-gray-900 mb-6">Cálculo de Precio</h2>
+
+        <div className="grid md:grid-cols-2 gap-6">
+          <div>
+            <label className="block text-sm font-light text-gray-700 mb-2 uppercase tracking-wider">
+              Peso (gramos) *
+            </label>
+            <input
+              type="number"
+              name="peso"
+              value={formData.peso}
+              onChange={handleChange}
+              required
+              step="0.01"
+              min="0"
+              className="w-full px-4 py-2 border border-gray-300 focus:outline-none focus:border-gray-500"
+              placeholder="2.5"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-light text-gray-700 mb-2 uppercase tracking-wider">
+              Factor *
+            </label>
+            <select
+              name="id_factor"
+              value={formData.id_factor}
+              onChange={handleChange}
+              required
+              className="w-full px-4 py-2 border border-gray-300 focus:outline-none focus:border-gray-500"
+            >
+              <option value="">Seleccionar factor</option>
+              {factores.map(factor => (
+                <option key={factor.id} value={factor.id}>
+                  {factor.nombre} (${factor.valor})
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {precioCalculado > 0 && (
+          <div className="mt-6 p-4 bg-green-50 border border-green-200">
+            <p className="text-sm text-gray-700 mb-1">Precio calculado:</p>
+            <p className="text-3xl font-light text-gray-900">
+              ${precioCalculado}
+            </p>
+            <p className="text-xs text-gray-500 mt-2">
+              {formData.peso} gramos × ${factores.find(f => f.id === formData.id_factor)?.valor || 0}
+            </p>
+          </div>
+        )}
+      </div>
+
+      <div className="bg-white p-6 border border-gray-200">
+        <h2 className="text-xl font-light text-gray-900 mb-6">Imagen del Producto</h2>
         <ImageUploader
           currentImage={formData.imagen_url}
           onImageUpload={handleImageUpload}
           productCode={formData.codigo}
+          requireCode={true}
         />
       </div>
 
       <div className="flex justify-end space-x-4">
         <button
           type="button"
-          onClick={() => router.push("/admin/productos")}
+          onClick={() => router.push('/admin/productos')}
           className="px-6 py-3 border border-gray-300 text-gray-700 text-sm uppercase tracking-wider hover:bg-gray-50 transition-colors"
         >
           Cancelar
@@ -367,11 +466,7 @@ export default function ProductForm({ producto = null }) {
           disabled={loading}
           className="px-6 py-3 bg-gray-900 text-white text-sm uppercase tracking-wider hover:bg-gray-800 transition-colors disabled:opacity-50"
         >
-          {loading
-            ? "Guardando..."
-            : producto
-            ? "Actualizar"
-            : "Crear Producto"}
+          {loading ? 'Guardando...' : (producto ? 'Actualizar' : 'Crear Producto')}
         </button>
       </div>
     </form>

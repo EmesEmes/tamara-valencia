@@ -15,6 +15,16 @@ export default function ProductDetail({ productId }) {
   const [productosConjunto, setProductosConjunto] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const calcularPrecio = (prod) => {
+    if (!prod.peso || !prod.factor || !prod.factor.valor) return 0;
+    return parseFloat(prod.peso) * parseFloat(prod.factor.valor);
+  };
+
+  const redondearPrecio = (precio) => {
+    if (!precio || precio === 0) return 0;
+    return Math.ceil(precio / 5) * 5;
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -106,77 +116,79 @@ export default function ProductDetail({ productId }) {
         </div>
 
         {/* Información */}
-        <div className="space-y-6">
-          {producto.conjunto && (
-            <p className="text-sm text-gray-500 uppercase tracking-wider">
-              Conjunto: {producto.conjunto.nombre}
-            </p>
-          )}
+<div className="space-y-6">
+  {producto.conjunto && (
+    <p className="text-sm text-gray-500 uppercase tracking-wider">
+      Conjunto: {producto.conjunto.nombre}
+    </p>
+  )}
 
-          <h1 className="font-elegant text-4xl md:text-5xl font-light text-gray-900">
-            {producto.nombre_comercial}
-          </h1>
+  {/* Tipo como título principal */}
+  <h1 className="font-elegant text-4xl md:text-5xl font-light text-gray-900">
+    {producto.tipo.charAt(0).toUpperCase() + producto.tipo.slice(1)}
+  </h1>
 
-          <div className="w-16 h-px bg-[#FFF2E0]"></div>
+  <div className="w-16 h-px bg-[#FFF2E0]"></div>
 
-          <p className="text-3xl font-light text-gray-900">
-            {formatPrice(producto.precio)}
-          </p>
+  <p className="text-3xl font-light text-gray-900">
+    {formatPrice(redondearPrecio(calcularPrecio(producto)))}
+  </p>
 
-          <div className="space-y-3 text-gray-600">
-            <p>
-              <span className="font-medium">Código:</span> {producto.codigo}
-            </p>
-            <p>
-              <span className="font-medium">Tipo:</span> {producto.tipo}
-            </p>
-            <p>
-              <span className="font-medium">Material:</span> {producto.material}
-            </p>
-            <p>
-              <span className="font-medium">Categoría:</span>{" "}
-              {producto.categoria}
-            </p>
-            {producto.peso && (
-              <p>
-                <span className="font-medium">Peso:</span> {producto.peso}g
-              </p>
-            )}
-          </div>
-          <p>
-            <span className="font-medium">Disponibilidad:</span>{" "}
-            <span
-              className={
-                producto.stock > 5
-                  ? "text-green-600"
-                  : producto.stock > 0
-                  ? "text-yellow-600"
-                  : "text-red-600"
-              }
-            >
-              {producto.stock > 0 ? `${producto.stock} en stock` : "Agotado"}
-            </span>
-          </p>
-          {producto.descripcion && (
-            <div className="pt-6 border-t border-gray-200">
-              <h3 className="font-medium text-gray-900 mb-2">Descripción</h3>
-              <p className="text-gray-600 leading-relaxed font-light">
-                {producto.descripcion}
-              </p>
-            </div>
-          )}
+  <div className="space-y-3 text-gray-600">
+    <p>
+      <span className="font-medium">Código:</span> {producto.codigo}
+    </p>
+    <p>
+      <span className="font-medium">Nombre:</span> {producto.nombre_comercial}
+    </p>
+    <p>
+      <span className="font-medium">Material:</span> {producto.material}
+    </p>
+    <p>
+      <span className="font-medium">Categoría:</span> {producto.categoria}
+    </p>
+    {producto.talla && (
+      <p>
+        <span className="font-medium">Talla:</span> {producto.talla}
+      </p>
+    )}
+    {producto.factor && (
+      <p>
+        <span className="font-medium">Acabado:</span> {producto.factor.nombre}
+      </p>
+    )}
+    <p>
+      <span className="font-medium">Disponibilidad:</span>{' '}
+      <span className={
+        producto.stock > 5 ? 'text-green-600' : 
+        producto.stock > 0 ? 'text-yellow-600' : 
+        'text-red-600'
+      }>
+        {producto.stock > 0 ? `${producto.stock} en stock` : 'Agotado'}
+      </span>
+    </p>
+  </div>
 
-          <div className="pt-6">
-            <a
-              href={`https://wa.me/593999999999?text=Hola, estoy interesado en ${producto.nombre_comercial} (${producto.codigo})`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-block w-full md:w-auto px-12 py-4 bg-gray-900 text-white text-center font-light tracking-widest uppercase text-sm hover:bg-gray-800 transition-all duration-300"
-            >
-              Consultar por WhatsApp
-            </a>
-          </div>
-        </div>
+  {producto.descripcion && (
+    <div className="pt-6 border-t border-gray-200">
+      <h3 className="font-medium text-gray-900 mb-2">Descripción</h3>
+      <p className="text-gray-600 leading-relaxed font-light">
+        {producto.descripcion}
+      </p>
+    </div>
+  )}
+
+  <div className="pt-6">
+    <a 
+      href={`https://wa.me/593999999999?text=Hola, estoy interesado en ${producto.tipo} ${producto.nombre_comercial} (${producto.codigo})`}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="inline-block w-full md:w-auto px-12 py-4 bg-gray-900 text-white text-center font-light tracking-widest uppercase text-sm hover:bg-gray-800 transition-all duration-300"
+    >
+      Consultar por WhatsApp
+    </a>
+  </div>
+</div>
       </div>
 
       {/* Productos del mismo conjunto */}

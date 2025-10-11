@@ -19,7 +19,13 @@ export default function ProductosAdminPage() {
       setLoading(true);
       const { data, error } = await supabase
         .from("productos")
-        .select("*, conjunto:conjuntos(*)")
+        .select(
+          `
+          *,
+          conjunto:conjuntos(*),
+          factor:factores(*)
+        `
+        )
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -29,6 +35,17 @@ export default function ProductosAdminPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const calcularPrecio = (peso, factor) => {
+    if (!peso || !factor || !factor.valor) return 0;
+    return parseFloat(peso) * parseFloat(factor.valor);
+  };
+
+  const redondearPrecio = (precio) => {
+    if (!precio || precio === 0) return 0;
+    // Redondear hacia arriba al múltiplo de 5 más cercano
+    return Math.ceil(precio / 5) * 5;
   };
 
   const handleDelete = async (id, codigo) => {
@@ -113,7 +130,19 @@ export default function ProductosAdminPage() {
                     Material
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                    Talla
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                    Peso
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                    Factor
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                     Precio
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                    Precio Final
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                     Stock
@@ -125,106 +154,143 @@ export default function ProductosAdminPage() {
                     Estado
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                    Observaciones
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                     Acciones
                   </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {productos.map((producto) => (
-                  <tr key={producto.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4">
-                      <div className="relative w-16 h-16 bg-gray-100">
-                        {producto.imagen_url ? (
-                          <Image
-                            src={producto.imagen_url}
-                            alt={producto.nombre_comercial}
-                            fill
-                            className="object-cover"
-                            sizes="64px"
-                          />
+                {productos.map((producto) => {
+                  const precio = calcularPrecio(producto.peso, producto.factor);
+
+                  return (
+                    <tr key={producto.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4">
+                        <div className="relative w-16 h-16 bg-gray-100">
+                          {producto.imagen_url ? (
+                            <Image
+                              src={producto.imagen_url}
+                              alt={producto.nombre_comercial}
+                              fill
+                              className="object-cover"
+                              sizes="64px"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <svg
+                                className="w-8 h-8 text-gray-300"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth="1"
+                                  d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                                ></path>
+                              </svg>
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-900">
+                        {producto.codigo}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-900">
+                        {producto.nombre_comercial}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-600">
+                        {producto.tipo}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-600">
+                        {producto.material}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-600">
+                        {producto.talla || "-"}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-600">
+                        {producto.peso ? `${producto.peso}g` : "-"}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-600">
+                        {producto.factor?.nombre || "-"}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-900 font-medium">
+                        {precio > 0 ? formatPrice(precio) : "-"}
+                      </td>
+                      <td className="px-6 py-4 text-sm font-medium">
+                        {precio > 0 ? (
+                          <span className="text-green-700 bg-green-50 px-2 py-1 rounded">
+                            {formatPrice(redondearPrecio(precio))}
+                          </span>
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <svg
-                              className="w-8 h-8 text-gray-300"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              stroke="currentColor"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth="1"
-                                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                              ></path>
-                            </svg>
-                          </div>
+                          "-"
                         )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-900">
-                      {producto.codigo}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-900">
-                      {producto.nombre_comercial}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-600">
-                      {producto.tipo}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-600">
-                      {producto.material}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-900">
-                      {formatPrice(producto.precio)}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-900">
-                      <span
-                        className={`px-2 py-1 text-xs ${
-                          producto.stock > 5
-                            ? "bg-green-100 text-green-800"
-                            : producto.stock > 0
-                            ? "bg-yellow-100 text-yellow-800"
-                            : "bg-red-100 text-red-800"
-                        }`}
-                      >
-                        {producto.stock}{" "}
-                        {producto.stock === 1 ? "unidad" : "unidades"}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-600">
-                      {producto.conjunto?.nombre || "-"}
-                    </td>
-                    <td className="px-6 py-4">
-                      <button
-                        onClick={() =>
-                          toggleActivo(producto.id, producto.activo)
-                        }
-                        className={`px-3 py-1 text-xs uppercase tracking-wider ${
-                          producto.activo
-                            ? "bg-green-100 text-green-800"
-                            : "bg-red-100 text-red-800"
-                        }`}
-                      >
-                        {producto.activo ? "Activo" : "Inactivo"}
-                      </button>
-                    </td>
-                    <td className="px-6 py-4 text-sm space-x-2">
-                      <Link
-                        href={`/admin/productos/${producto.id}/editar`}
-                        className="text-blue-600 hover:text-blue-900"
-                      >
-                        Editar
-                      </Link>
-                      <button
-                        onClick={() =>
-                          handleDelete(producto.id, producto.codigo)
-                        }
-                        className="text-red-600 hover:text-red-900"
-                      >
-                        Eliminar
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                      <td className="px-6 py-4">
+                        <span
+                          className={`px-2 py-1 text-xs ${
+                            producto.stock > 5
+                              ? "bg-green-100 text-green-800"
+                              : producto.stock > 0
+                              ? "bg-yellow-100 text-yellow-800"
+                              : "bg-red-100 text-red-800"
+                          }`}
+                        >
+                          {producto.stock}{" "}
+                          {producto.stock === 1 ? "unidad" : "unidades"}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-600">
+                        {producto.conjunto?.nombre || "-"}
+                      </td>
+                      <td className="px-6 py-4">
+                        <button
+                          onClick={() =>
+                            toggleActivo(producto.id, producto.activo)
+                          }
+                          className={`px-3 py-1 text-xs uppercase tracking-wider ${
+                            producto.activo
+                              ? "bg-green-100 text-green-800"
+                              : "bg-red-100 text-red-800"
+                          }`}
+                        >
+                          {producto.activo ? "Activo" : "Inactivo"}
+                        </button>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-600 max-w-xs">
+                        {producto.observaciones ? (
+                          <span
+                            className="line-clamp-2"
+                            title={producto.observaciones}
+                          >
+                            {producto.observaciones}
+                          </span>
+                        ) : (
+                          "-"
+                        )}
+                      </td>
+                      <td className="px-6 py-4 text-sm space-x-2">
+                        <Link
+                          href={`/admin/productos/${producto.id}/editar`}
+                          className="text-blue-600 hover:text-blue-900"
+                        >
+                          Editar
+                        </Link>
+                        <button
+                          onClick={() =>
+                            handleDelete(producto.id, producto.codigo)
+                          }
+                          className="text-red-600 hover:text-red-900"
+                        >
+                          Eliminar
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
