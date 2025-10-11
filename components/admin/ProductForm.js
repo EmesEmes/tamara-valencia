@@ -87,7 +87,9 @@ export default function ProductForm({ producto = null }) {
     
     if (peso > 0 && factor) {
       const precio = peso * parseFloat(factor.valor);
-      setPrecioCalculado(precio.toFixed(2));
+      // Redondear correctamente a 2 decimales
+      const precioRedondeado = Math.round(precio * 100) / 100;
+      setPrecioCalculado(precioRedondeado.toFixed(2));
     } else {
       setPrecioCalculado(0);
     }

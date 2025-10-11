@@ -14,7 +14,7 @@ export default function Hero() {
         
         <div className="w-24 h-px bg-gray-300 mx-auto mb-8"></div>
         
-        <p className="text-xl md:text-2xl font-light text-gray-600 mb-12 max-w-2xl mx-auto leading-relaxed">
+        <p className="text-xl md:text-2xl font-light text-gray-600 mb-12 max-w-2xl mx-auto leading-relaxed text-white">
           Elegancia atemporal en cada pieza. Descubre joyas que cuentan historias.
         </p>
         
