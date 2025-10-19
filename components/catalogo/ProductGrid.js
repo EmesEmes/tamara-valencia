@@ -19,15 +19,16 @@ export default function ProductGrid({ conjuntos, productosSueltos }) {
     <div className="space-y-16">
       {/* Mostrar Conjuntos */}
       {conjuntos.map(conjunto => (
-        <div key={conjunto.id} className="space-y-8">
+        <div key={conjunto.id} className="space-y-8 ">
           {/* Imagen del conjunto */}
-          {conjunto.imagen_url && (
-            <div className="relative w-full h-[400px] md:h-[500px] overflow-hidden bg-gray-100 mb-6">
+          <div className='grid items-center lg:grid-cols-2 lg:gap-6'>
+            {conjunto.imagen_url && (
+            <div className="relative w-full h-[400px] md:h-[700px] overflow-hidden bg-gray-100 mb-6 rounded-lg">
               <Image
                 src={conjunto.imagen_url}
                 alt={conjunto.nombre}
                 fill
-                className="object-cover"
+                className="object-cover object-center"
                 sizes="100vw"
                 priority
               />
@@ -45,6 +46,7 @@ export default function ProductGrid({ conjuntos, productosSueltos }) {
               </p>
             )}
             <div className="w-16 h-px bg-[#FFF2E0] mx-auto mt-4"></div>
+          </div>
           </div>
           
           {/* Productos del conjunto */}

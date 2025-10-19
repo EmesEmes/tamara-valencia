@@ -85,7 +85,7 @@ export default function ProductosAdminPage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-12">
+    <div className="mx-auto px-4 py-12">
       <div className="flex justify-between items-center mb-8">
         <h1 className="font-elegant text-4xl font-light text-gray-900">
           Productos

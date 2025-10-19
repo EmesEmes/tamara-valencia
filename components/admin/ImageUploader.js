@@ -41,18 +41,27 @@ export default function ImageUploader({
       // Generar nombre para el archivo
       // Generar nombre para el archivo
       let publicId;
-      if (productCode && productCode.trim() !== "") {
-        // Limpiar el nombre para que sea válido en Cloudinary
-        // Elimina caracteres especiales, reemplaza espacios por guiones y convierte a minúsculas
-        publicId = productCode
-          .trim()
-          .replace(/[^a-zA-Z0-9\s-]/g, "") // Eliminar caracteres especiales
-          .replace(/\s+/g, "-") // Reemplazar espacios por guiones
-          .toLowerCase(); // Convertir a minúsculas
-      } else {
-        // Generar nombre automático solo si no hay código/nombre
-        publicId = `conjunto-${Date.now()}`;
-      }
+if (requireCode && productCode) {
+  // Para productos: usar código limpio (sin timestamp)
+  publicId = productCode
+    .trim()
+    .replace(/[^a-zA-Z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .toLowerCase();
+} else {
+  // Para conjuntos: siempre agregar timestamp
+  if (productCode && productCode.trim() !== '') {
+    const nombreLimpio = productCode
+      .trim()
+      .replace(/[^a-zA-Z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .toLowerCase();
+    publicId = `${nombreLimpio}-${Date.now()}`;
+  } else {
+    // Si no hay nombre, solo timestamp
+    publicId = `conjunto-${Date.now()}`;
+  }
+}
 
       // Crear FormData
       const formData = new FormData();

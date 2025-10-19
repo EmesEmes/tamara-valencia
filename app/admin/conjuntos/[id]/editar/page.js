@@ -1,11 +1,12 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, use } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import ConjuntoForm from '@/components/admin/ConjuntoForm';
 import Link from 'next/link';
 import LoadingSpinner from '@/components/shared/LoadingSpinner';
 
 export default function EditarConjuntoPage({ params }) {
+  const resolvedParams = use(params);
   const [conjunto, setConjunto] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -15,7 +16,7 @@ export default function EditarConjuntoPage({ params }) {
         const { data, error } = await supabase
           .from('conjuntos')
           .select('*')
-          .eq('id', params.id)
+          .eq('id', resolvedParams.id)
           .single();
 
         if (error) throw error;
@@ -28,7 +29,7 @@ export default function EditarConjuntoPage({ params }) {
     };
 
     fetchConjunto();
-  }, [params.id]);
+  }, [resolvedParams.id]);
 
   if (loading) {
     return <LoadingSpinner />;

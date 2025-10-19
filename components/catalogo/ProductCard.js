@@ -4,6 +4,19 @@ import Image from "next/image";
 import { formatPrice } from "@/utils/formatters";
 
 export default function ProductCard({ producto }) {
+  // Funciones para calcular precio
+  const calcularPrecio = (prod) => {
+    if (!prod.peso || !prod.factor || !prod.factor.valor) return 0;
+    return parseFloat(prod.peso) * parseFloat(prod.factor.valor);
+  };
+
+  const redondearPrecio = (precio) => {
+    if (!precio || precio === 0) return 0;
+    return Math.ceil(precio / 5) * 5;
+  };
+
+  const precioFinal = redondearPrecio(calcularPrecio(producto));
+
   return (
     <Link
       href={`/catalogo/${producto.id}`}
@@ -45,11 +58,21 @@ export default function ProductCard({ producto }) {
           {producto.material}
         </p>
         <p className="font-light text-xl text-gray-900">
-          {formatPrice(producto.precio)}
+          {precioFinal > 0 ? formatPrice(precioFinal) : 'Precio no disponible'}
         </p>
-        {producto.stock <= 3 && producto.stock > 0 && (
+        {producto.stock > 3 && (
+          <p className="text-xs mt-1 text-green-600">
+            Productos en stock: {producto.stock}
+          </p>
+        )}
+        {producto.stock <= 3 && producto.stock > 1 && (
           <p className="text-xs text-orange-600 mt-1">
             ¡Solo quedan {producto.stock}!
+          </p>
+        )}
+        {producto.stock === 1 && (
+          <p className="text-xs text-red-500 mt-1">
+            ¡Solo queda {producto.stock}!
           </p>
         )}
         {producto.stock === 0 && (

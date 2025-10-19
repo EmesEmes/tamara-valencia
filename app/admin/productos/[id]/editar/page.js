@@ -1,11 +1,12 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, use } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import ProductForm from '@/components/admin/ProductForm';
 import Link from 'next/link';
 import LoadingSpinner from '@/components/shared/LoadingSpinner';
 
 export default function EditarProductoPage({ params }) {
+  const resolvedParams = use(params);
   const [producto, setProducto] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -15,7 +16,7 @@ export default function EditarProductoPage({ params }) {
         const { data, error } = await supabase
           .from('productos')
           .select('*')
-          .eq('id', params.id)
+          .eq('id', resolvedParams.id)
           .single();
 
         if (error) throw error;
@@ -28,7 +29,7 @@ export default function EditarProductoPage({ params }) {
     };
 
     fetchProducto();
-  }, [params.id]);
+  }, [resolvedParams.id]);
 
   if (loading) {
     return <LoadingSpinner />;
