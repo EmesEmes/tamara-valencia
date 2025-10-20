@@ -3,4 +3,5 @@
 @theme {
   --color-accent: #FFF2E0;
   --font-family-elegant: var(--font-elegant), serif;
+  --font-biloxi: var(--font-biloxi), sans-serif;
 }

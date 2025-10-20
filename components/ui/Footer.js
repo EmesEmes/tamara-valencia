@@ -44,8 +44,7 @@ export default function Footer() {
           <div>
             <h4 className="text-sm tracking-widest uppercase mb-4">Contacto</h4>
             <ul className="space-y-2 text-sm text-gray-400">
-              <li>info@tamaravalencia.com</li>
-              <li>+593 99 999 9999</li>
+              <li>+593 99 844 4531</li>
               <li>Quito, Ecuador</li>
             </ul>
           </div>

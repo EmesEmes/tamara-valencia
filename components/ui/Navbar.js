@@ -9,8 +9,8 @@ export default function Navbar() {
     <nav className="fixed w-full bg-white/95 backdrop-blur-sm z-50 border-b border-gray-100">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-20">
-          <Link href="/" className="font-elegant text-2xl md:text-3xl font-light tracking-wide text-gray-900">
-            Tamara Valencia
+          <Link href="/" className="font-elegant text-2xl md:text-3xl font-light tracking-wide text-gray-900 font-biloxi">
+            Tamara Valencia Joyas
           </Link>
 
           <div className="hidden md:flex items-center space-x-8">

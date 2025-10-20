@@ -5,9 +5,14 @@ import ProductGrid from './ProductGrid';
 import Filters from './Filters';
 import LoadingSpinner from '@/components/shared/LoadingSpinner';
 
+const CONJUNTOS_POR_PAGINA = 6;
+
 export default function CatalogoContent() {
   const [data, setData] = useState({ conjuntos: [], productosSueltos: [] });
+  const [conjuntosMostrados, setConjuntosMostrados] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMoreConjuntos, setLoadingMoreConjuntos] = useState(false);
+  const [cantidadConjuntosMostrada, setCantidadConjuntosMostrada] = useState(CONJUNTOS_POR_PAGINA);
   const [filters, setFilters] = useState({
     tipo: '',
     categoria: '',
@@ -17,20 +22,28 @@ export default function CatalogoContent() {
   });
 
   useEffect(() => {
-    const fetchProductos = async () => {
-      try {
-        setLoading(true);
-        const result = await getProductosAgrupados(filters);
-        setData(result);
-      } catch (error) {
-        console.error('Error al cargar productos:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchProductos();
   }, [filters]);
+
+  useEffect(() => {
+    // Actualizar conjuntos mostrados
+    setConjuntosMostrados(data.conjuntos.slice(0, cantidadConjuntosMostrada));
+  }, [cantidadConjuntosMostrada, data.conjuntos]);
+
+  const fetchProductos = async () => {
+    try {
+      setLoading(true);
+      const result = await getProductosAgrupados(filters);
+      setData(result);
+      setConjuntosMostrados(result.conjuntos.slice(0, CONJUNTOS_POR_PAGINA));
+      // Reset contador al cambiar filtros
+      setCantidadConjuntosMostrada(CONJUNTOS_POR_PAGINA);
+    } catch (error) {
+      console.error('Error al cargar productos:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleFilterChange = (newFilters) => {
     setFilters(newFilters);
@@ -45,6 +58,16 @@ export default function CatalogoContent() {
       precioMax: ''
     });
   };
+
+  const handleVerMasConjuntos = () => {
+    setLoadingMoreConjuntos(true);
+    setTimeout(() => {
+      setCantidadConjuntosMostrada(prev => prev + CONJUNTOS_POR_PAGINA);
+      setLoadingMoreConjuntos(false);
+    }, 300);
+  };
+
+  const hayMasConjuntos = cantidadConjuntosMostrada < data.conjuntos.length;
 
   if (loading) {
     return <LoadingSpinner />;
@@ -66,9 +89,31 @@ export default function CatalogoContent() {
       />
 
       <ProductGrid 
-        conjuntos={data.conjuntos} 
-        productosSueltos={data.productosSueltos} 
+        conjuntos={conjuntosMostrados} 
+        productosSueltos={data.productosSueltos}
       />
+
+      {/* Botón Ver Más solo para conjuntos */}
+      {hayMasConjuntos && (
+        <div className="text-center mt-12">
+          <button
+            onClick={handleVerMasConjuntos}
+            disabled={loadingMoreConjuntos}
+            className="px-12 py-4 border-2 border-gray-900 text-gray-900 font-light tracking-widest uppercase text-sm hover:bg-gray-900 hover:text-white transition-all duration-300 disabled:opacity-50"
+          >
+            {loadingMoreConjuntos ? 'Cargando...' : `Ver Más Conjuntos (${data.conjuntos.length - cantidadConjuntosMostrada} restantes)`}
+          </button>
+        </div>
+      )}
+
+      {/* Mensaje cuando se muestran todos los conjuntos */}
+      {!hayMasConjuntos && data.conjuntos.length > CONJUNTOS_POR_PAGINA && (
+        <div className="text-center mt-12">
+          <p className="text-gray-500 text-sm font-light">
+            Has visto todos los conjuntos ({data.conjuntos.length} en total)
+          </p>
+        </div>
+      )}
     </div>
   );
 }

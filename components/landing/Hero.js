@@ -8,8 +8,8 @@ export default function Hero() {
       
       {/* Contenido */}
       <div className="relative z-10 text-center px-4 max-w-4xl mx-auto pt-20">
-        <h1 className="font-serif text-6xl md:text-8xl font-light mb-6 tracking-wide text-gray-900">
-          Tamara Valencia
+        <h1 className=" text-6xl md:text-8xl font-light mb-6 tracking-wide text-gray-900 font-biloxi">
+          Tamara Valencia Joyas
         </h1>
         
         <div className="w-24 h-px bg-gray-300 mx-auto mb-8"></div>
@@ -22,7 +22,7 @@ export default function Hero() {
           href="/catalogo"
           className="inline-block px-12 py-4 bg-gray-900 text-white font-light tracking-widest uppercase text-sm hover:bg-gray-800 transition-all duration-300 hover:scale-105"
         >
-          Ver Colección
+          Ver Catálogo
         </Link>
       </div>
 
