@@ -22,7 +22,7 @@ export default function AdminNav() {
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center space-x-8">
             <Link href="/admin" className="font-elegant text-xl font-light">
-              Tamara Valencia - Admin
+              Tamara Valencia Joyas- Admin
             </Link>
 
             <div className="hidden md:flex items-center space-x-6">

@@ -2,7 +2,7 @@ import ProtectedRoute from '@/components/admin/ProtectedRoute';
 import AdminNav from '@/components/admin/AdminNav';
 
 export const metadata = {
-  title: 'Admin - Tamara Valencia',
+  title: 'Admin - Tamara Valencia Joyas',
 };
 
 export default function AdminLayout({ children }) {

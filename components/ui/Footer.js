@@ -7,7 +7,7 @@ export default function Footer() {
         <div className="grid md:grid-cols-3 gap-8 mb-8">
           {/* Logo y descripción */}
           <div>
-            <h3 className="font-elegant text-2xl mb-4">Tamara Valencia</h3>
+            <h3 className="font-elegant text-2xl mb-4">Tamara Valencia Joyas</h3>
             <p className="text-gray-400 text-sm font-light">
               Elegancia atemporal en cada pieza de joyería.
             </p>
