@@ -1,16 +1,46 @@
 'use client';
+import { useState, useEffect, useRef } from 'react';
 import { TIPOS_PRODUCTO, CATEGORIAS_PRODUCTO, MATERIALES_PRODUCTO } from '@/lib/constants';
 
 export default function Filters({ filters, onFilterChange, onClearFilters }) {
+  const [localFilters, setLocalFilters] = useState(filters);
+  const isFirstRender = useRef(true);
+
+  // Debounce para precios
+  useEffect(() => {
+    // Evitar ejecutar en el primer render
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+
+    const timeoutId = setTimeout(() => {
+      onFilterChange(localFilters);
+    }, 1000); // Espera 800ms después de que el usuario deje de escribir
+
+    return () => clearTimeout(timeoutId);
+  }, [localFilters.precioMin, localFilters.precioMax, localFilters, onFilterChange]);
+
+  // Actualizar filtros locales cuando cambien los externos (ej: al limpiar)
+  useEffect(() => {
+    setLocalFilters(filters);
+  }, [filters]);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
-    onFilterChange({
-      ...filters,
+    const newFilters = {
+      ...localFilters,
       [name]: value
-    });
+    };
+    setLocalFilters(newFilters);
+
+    // Para los selects (tipo, categoria, material), aplicar inmediatamente
+    if (name !== 'precioMin' && name !== 'precioMax') {
+      onFilterChange(newFilters);
+    }
   };
 
-  const hasActiveFilters = Object.values(filters).some(value => value !== '');
+  const hasActiveFilters = Object.values(localFilters).some(value => value !== '');
 
   return (
     <div className="mb-12 bg-gray-50 p-6 rounded-lg">
@@ -22,7 +52,7 @@ export default function Filters({ filters, onFilterChange, onClearFilters }) {
           </label>
           <select
             name="tipo"
-            value={filters.tipo}
+            value={localFilters.tipo}
             onChange={handleChange}
             className="w-full px-4 py-2 border border-gray-300 bg-white focus:outline-none focus:border-gray-500 text-sm"
           >
@@ -34,7 +64,7 @@ export default function Filters({ filters, onFilterChange, onClearFilters }) {
             ))}
           </select>
         </div>
- 
+
         {/* Filtro por Categoría */}
         <div>
           <label className="block text-sm font-light text-gray-700 mb-2 uppercase tracking-wider">
@@ -42,7 +72,7 @@ export default function Filters({ filters, onFilterChange, onClearFilters }) {
           </label>
           <select
             name="categoria"
-            value={filters.categoria}
+            value={localFilters.categoria}
             onChange={handleChange}
             className="w-full px-4 py-2 border border-gray-300 bg-white focus:outline-none focus:border-gray-500 text-sm"
           >
@@ -62,7 +92,7 @@ export default function Filters({ filters, onFilterChange, onClearFilters }) {
           </label>
           <select
             name="material"
-            value={filters.material}
+            value={localFilters.material}
             onChange={handleChange}
             className="w-full px-4 py-2 border border-gray-300 bg-white focus:outline-none focus:border-gray-500 text-sm"
           >
@@ -83,7 +113,7 @@ export default function Filters({ filters, onFilterChange, onClearFilters }) {
           <input
             type="number"
             name="precioMin"
-            value={filters.precioMin}
+            value={localFilters.precioMin}
             onChange={handleChange}
             placeholder="$0"
             min="0"
@@ -99,7 +129,7 @@ export default function Filters({ filters, onFilterChange, onClearFilters }) {
           <input
             type="number"
             name="precioMax"
-            value={filters.precioMax}
+            value={localFilters.precioMax}
             onChange={handleChange}
             placeholder="$9999"
             min="0"

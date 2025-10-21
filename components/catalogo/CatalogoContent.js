@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { getProductosAgrupados } from '@/lib/supabase/client';
 import ProductGrid from './ProductGrid';
 import Filters from './Filters';
@@ -22,6 +22,21 @@ export default function CatalogoContent() {
   });
 
   useEffect(() => {
+    const fetchProductos = async () => {
+      try {
+        setLoading(true);
+        const result = await getProductosAgrupados(filters);
+        setData(result);
+        setConjuntosMostrados(result.conjuntos.slice(0, CONJUNTOS_POR_PAGINA));
+        // Reset contador al cambiar filtros
+        setCantidadConjuntosMostrada(CONJUNTOS_POR_PAGINA);
+      } catch (error) {
+        console.error('Error al cargar productos:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     fetchProductos();
   }, [filters]);
 
@@ -30,26 +45,11 @@ export default function CatalogoContent() {
     setConjuntosMostrados(data.conjuntos.slice(0, cantidadConjuntosMostrada));
   }, [cantidadConjuntosMostrada, data.conjuntos]);
 
-  const fetchProductos = async () => {
-    try {
-      setLoading(true);
-      const result = await getProductosAgrupados(filters);
-      setData(result);
-      setConjuntosMostrados(result.conjuntos.slice(0, CONJUNTOS_POR_PAGINA));
-      // Reset contador al cambiar filtros
-      setCantidadConjuntosMostrada(CONJUNTOS_POR_PAGINA);
-    } catch (error) {
-      console.error('Error al cargar productos:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleFilterChange = (newFilters) => {
+  const handleFilterChange = useCallback((newFilters) => {
     setFilters(newFilters);
-  };
+  }, []);
 
-  const handleClearFilters = () => {
+  const handleClearFilters = useCallback(() => {
     setFilters({
       tipo: '',
       categoria: '',
@@ -57,7 +57,7 @@ export default function CatalogoContent() {
       precioMin: '',
       precioMax: ''
     });
-  };
+  }, []);
 
   const handleVerMasConjuntos = () => {
     setLoadingMoreConjuntos(true);

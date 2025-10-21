@@ -8,7 +8,7 @@ export default function Hero() {
       
       {/* Contenido */}
       <div className="relative z-10 text-center px-4 max-w-4xl mx-auto pt-20">
-        <h1 className=" text-6xl md:text-8xl font-light mb-6 tracking-wide text-gray-900 font-biloxi">
+        <h1 className=" text-6xl lg:text-8xl font-light mb-6 tracking-wide text-gray-900 font-biloxi">
           Tamara Valencia Joyas
         </h1>
         
