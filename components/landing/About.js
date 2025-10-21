@@ -11,9 +11,9 @@ export default function About() {
             <div className="w-16 h-px bg-[#FFF2E0]"></div>
             
             <p className="text-lg text-gray-600 leading-relaxed font-light">
-              En Tamara Valencia, cada joya es una obra de arte cuidadosamente creada 
+              En Tamara Valencia Joyas, cada pieza es una obra de arte cuidadosamente escogida 
               para expresar tu esencia única. Combinamos técnicas tradicionales con 
-              diseños contemporáneos para ofrecerte piezas excepcionales.
+              diseños contemporáneos para ofrecerte joyas excepcionales.
             </p>
             
             <p className="text-lg text-gray-600 leading-relaxed font-light">
@@ -39,7 +39,7 @@ export default function About() {
           </div>
 
           <div className="relative h-[600px] bg-[#FFF2E0]/30 rounded-lg overflow-hidden">
-            <div className="absolute inset-0 flex items-center justify-center bg-[url(/test.webp)] bg-cover bg-center" />
+            <div className="absolute inset-0 flex items-center justify-center bg-[url(/about.webp)] bg-cover bg-center" />
           </div>
         </div>
       </div>

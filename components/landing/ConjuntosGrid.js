@@ -76,8 +76,8 @@ export default function ConjuntosGrid() {
           </h2>
           <div className="w-24 h-px bg-gray-300 mx-auto mb-6"></div>
           <p className="text-lg text-gray-600 font-light max-w-2xl mx-auto">
-            Descubre nuestros conjuntos exclusivos de joyería, 
-            cada uno diseñado para complementar tu estilo único
+            Descubre nuestros juegos exclusivos de joyería, 
+            cada uno escogido para complementar tu estilo único
           </p>
         </div>
 

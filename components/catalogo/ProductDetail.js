@@ -119,13 +119,13 @@ export default function ProductDetail({ productId }) {
 <div className="space-y-6">
   {producto.conjunto && (
     <p className="text-sm text-gray-500 uppercase tracking-wider">
-      Conjunto: {producto.conjunto.nombre}
+      Juego: {producto.conjunto.nombre}
     </p>
   )}
 
   {/* Tipo como título principal */}
   <h1 className="font-elegant text-4xl md:text-5xl font-light text-gray-900">
-    {producto.tipo.charAt(0).toUpperCase() + producto.tipo.slice(1)}
+    {producto.nombre_comercial}
   </h1>
 
   <div className="w-16 h-px bg-[#FFF2E0]"></div>
@@ -138,9 +138,9 @@ export default function ProductDetail({ productId }) {
     <p>
       <span className="font-medium">Código:</span> {producto.codigo}
     </p>
-    <p>
+    {/* <p>
       <span className="font-medium">Nombre:</span> {producto.nombre_comercial}
-    </p>
+    </p> */}
     <p>
       <span className="font-medium">Material:</span> {producto.material}
     </p>
@@ -180,7 +180,7 @@ export default function ProductDetail({ productId }) {
 
   <div className="pt-6">
     <a 
-      href={`https://wa.me/593999999999?text=Hola, estoy interesado en ${producto.tipo} ${producto.nombre_comercial} (${producto.codigo})`}
+      href={`https://wa.me/593998444531?text=Hola, estoy interesado en ${producto.nombre_comercial} (${producto.codigo})`}
       target="_blank"
       rel="noopener noreferrer"
       className="inline-block w-full md:w-auto px-12 py-4 bg-gray-900 text-white text-center font-light tracking-widest uppercase text-sm hover:bg-gray-800 transition-all duration-300"
