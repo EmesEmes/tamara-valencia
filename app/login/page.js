@@ -1,7 +1,9 @@
 import LoginForm from '@/components/admin/LoginForm';
 
 export const metadata = {
-  title: 'Login - Tamara Valencia',
+  title: 'Acceso Administrador - Tamara Valencia Joyas',
+  description: 'Panel de administración Tamara Valencia',
+  robots: 'noindex, nofollow',
 };
 
 export default function LoginPage() {
