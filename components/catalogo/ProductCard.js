@@ -54,8 +54,11 @@ export default function ProductCard({ producto }) {
         <h3 className="font-light text-lg text-gray-900 mb-1 line-clamp-2">
           {producto.nombre_comercial}
         </h3>
-        <p className="text-sm text-gray-500 uppercase tracking-wider mb-2">
+        <p className="text-sm text-gray-600 uppercase tracking-wider mb-2">
           {producto.material}
+        </p>
+        <p className="text-sm text-gray-500 uppercase tracking-wider mb-2">
+          {producto.talla}
         </p>
         <p className="font-light text-xl text-gray-900">
           {precioFinal > 0 ? formatPrice(precioFinal) : 'Precio no disponible'}
