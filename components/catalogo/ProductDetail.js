@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import { useRouter } from 'next/navigation';
 import {
   getProductoById,
   getProductosPorConjunto,
@@ -11,6 +12,7 @@ import LoadingSpinner from "@/components/shared/LoadingSpinner";
 import ProductCard from "./ProductCard";
 
 export default function ProductDetail({ productId }) {
+  const router = useRouter();
   const [producto, setProducto] = useState(null);
   const [productosConjunto, setProductosConjunto] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -75,12 +77,12 @@ export default function ProductDetail({ productId }) {
     <div className="max-w-7xl mx-auto px-4 py-12">
       {/* Breadcrumb */}
       <div className="mb-8">
-        <Link
-          href="/catalogo"
-          className="text-gray-600 hover:text-gray-900 text-sm"
+        <button
+          onClick={() => window.history.back()}
+          className="text-gray-600 hover:text-gray-900 text-sm cursor-pointer bg-transparent border-none"
         >
           ← Volver al catálogo
-        </Link>
+        </button>
       </div>
 
       {/* Detalle del Producto */}

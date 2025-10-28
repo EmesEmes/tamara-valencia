@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { getProductosAgrupados } from '@/lib/supabase/client';
 import ProductGrid from './ProductGrid';
 import Filters from './Filters';
@@ -8,18 +9,34 @@ import LoadingSpinner from '@/components/shared/LoadingSpinner';
 const CONJUNTOS_POR_PAGINA = 6;
 
 export default function CatalogoContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  
   const [data, setData] = useState({ conjuntos: [], productosSueltos: [] });
   const [conjuntosMostrados, setConjuntosMostrados] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadingMoreConjuntos, setLoadingMoreConjuntos] = useState(false);
   const [cantidadConjuntosMostrada, setCantidadConjuntosMostrada] = useState(CONJUNTOS_POR_PAGINA);
+  
+  // Leer filtros desde la URL
   const [filters, setFilters] = useState({
-    tipo: '',
-    categoria: '',
-    material: '',
-    precioMin: '',
-    precioMax: ''
+    tipo: searchParams.get('tipo') || '',
+    categoria: searchParams.get('categoria') || '',
+    material: searchParams.get('material') || '',
+    precioMin: searchParams.get('precioMin') || '',
+    precioMax: searchParams.get('precioMax') || ''
   });
+
+  // Actualizar filtros cuando cambia la URL
+  useEffect(() => {
+    setFilters({
+      tipo: searchParams.get('tipo') || '',
+      categoria: searchParams.get('categoria') || '',
+      material: searchParams.get('material') || '',
+      precioMin: searchParams.get('precioMin') || '',
+      precioMax: searchParams.get('precioMax') || ''
+    });
+  }, [searchParams]);
 
   useEffect(() => {
     const fetchProductos = async () => {
@@ -28,7 +45,6 @@ export default function CatalogoContent() {
         const result = await getProductosAgrupados(filters);
         setData(result);
         setConjuntosMostrados(result.conjuntos.slice(0, CONJUNTOS_POR_PAGINA));
-        // Reset contador al cambiar filtros
         setCantidadConjuntosMostrada(CONJUNTOS_POR_PAGINA);
       } catch (error) {
         console.error('Error al cargar productos:', error);
@@ -41,23 +57,27 @@ export default function CatalogoContent() {
   }, [filters]);
 
   useEffect(() => {
-    // Actualizar conjuntos mostrados
     setConjuntosMostrados(data.conjuntos.slice(0, cantidadConjuntosMostrada));
   }, [cantidadConjuntosMostrada, data.conjuntos]);
 
   const handleFilterChange = useCallback((newFilters) => {
-    setFilters(newFilters);
-  }, []);
+    // Construir query string
+    const params = new URLSearchParams();
+    
+    if (newFilters.tipo) params.set('tipo', newFilters.tipo);
+    if (newFilters.categoria) params.set('categoria', newFilters.categoria);
+    if (newFilters.material) params.set('material', newFilters.material);
+    if (newFilters.precioMin) params.set('precioMin', newFilters.precioMin);
+    if (newFilters.precioMax) params.set('precioMax', newFilters.precioMax);
+
+    // Actualizar URL sin recargar la página
+    const queryString = params.toString();
+    router.push(queryString ? `/catalogo?${queryString}` : '/catalogo', { scroll: false });
+  }, [router]);
 
   const handleClearFilters = useCallback(() => {
-    setFilters({
-      tipo: '',
-      categoria: '',
-      material: '',
-      precioMin: '',
-      precioMax: ''
-    });
-  }, []);
+    router.push('/catalogo', { scroll: false });
+  }, [router]);
 
   const handleVerMasConjuntos = () => {
     setLoadingMoreConjuntos(true);
@@ -93,7 +113,6 @@ export default function CatalogoContent() {
         productosSueltos={data.productosSueltos}
       />
 
-      {/* Botón Ver Más solo para conjuntos */}
       {hayMasConjuntos && (
         <div className="text-center mt-12">
           <button
@@ -106,7 +125,6 @@ export default function CatalogoContent() {
         </div>
       )}
 
-      {/* Mensaje cuando se muestran todos los conjuntos */}
       {!hayMasConjuntos && data.conjuntos.length > CONJUNTOS_POR_PAGINA && (
         <div className="text-center mt-12">
           <p className="text-gray-500 text-sm font-light">
