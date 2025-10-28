@@ -1,9 +1,10 @@
 'use client';
-import { useState, useEffect, useCallback } from 'react';
+import { useMemo, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { getProductosAgrupados } from '@/lib/supabase/client';
+import { useProductosAgrupados } from '@/lib/hooks/useProductos';
 import ProductGrid from './ProductGrid';
 import Filters from './Filters';
+import Pagination from './Pagination';
 import LoadingSpinner from '@/components/shared/LoadingSpinner';
 
 const CONJUNTOS_POR_PAGINA = 6;
@@ -12,56 +13,25 @@ export default function CatalogoContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   
-  const [data, setData] = useState({ conjuntos: [], productosSueltos: [] });
-  const [conjuntosMostrados, setConjuntosMostrados] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [loadingMoreConjuntos, setLoadingMoreConjuntos] = useState(false);
-  const [cantidadConjuntosMostrada, setCantidadConjuntosMostrada] = useState(CONJUNTOS_POR_PAGINA);
-  
-  // Leer filtros desde la URL
-  const [filters, setFilters] = useState({
+  // Usar useMemo para los filtros
+  const filters = useMemo(() => ({
     tipo: searchParams.get('tipo') || '',
     categoria: searchParams.get('categoria') || '',
     material: searchParams.get('material') || '',
     precioMin: searchParams.get('precioMin') || '',
     precioMax: searchParams.get('precioMax') || ''
-  });
+  }), [searchParams]);
 
-  // Actualizar filtros cuando cambia la URL
-  useEffect(() => {
-    setFilters({
-      tipo: searchParams.get('tipo') || '',
-      categoria: searchParams.get('categoria') || '',
-      material: searchParams.get('material') || '',
-      precioMin: searchParams.get('precioMin') || '',
-      precioMax: searchParams.get('precioMax') || ''
-    });
-  }, [searchParams]);
+  const currentPage = parseInt(searchParams.get('page')) || 1;
 
-  useEffect(() => {
-    const fetchProductos = async () => {
-      try {
-        setLoading(true);
-        const result = await getProductosAgrupados(filters);
-        setData(result);
-        setConjuntosMostrados(result.conjuntos.slice(0, CONJUNTOS_POR_PAGINA));
-        setCantidadConjuntosMostrada(CONJUNTOS_POR_PAGINA);
-      } catch (error) {
-        console.error('Error al cargar productos:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  // Debug logs
+  console.log('RENDER - Página actual:', currentPage);
+  console.log('RENDER - URL completa:', searchParams.toString());
 
-    fetchProductos();
-  }, [filters]);
-
-  useEffect(() => {
-    setConjuntosMostrados(data.conjuntos.slice(0, cantidadConjuntosMostrada));
-  }, [cantidadConjuntosMostrada, data.conjuntos]);
+  // Usar React Query para obtener productos
+  const { data, isLoading, error } = useProductosAgrupados(filters);
 
   const handleFilterChange = useCallback((newFilters) => {
-    // Construir query string
     const params = new URLSearchParams();
     
     if (newFilters.tipo) params.set('tipo', newFilters.tipo);
@@ -69,29 +39,55 @@ export default function CatalogoContent() {
     if (newFilters.material) params.set('material', newFilters.material);
     if (newFilters.precioMin) params.set('precioMin', newFilters.precioMin);
     if (newFilters.precioMax) params.set('precioMax', newFilters.precioMax);
+    // Reset a página 1 al cambiar filtros
+    params.set('page', '1');
 
-    // Actualizar URL sin recargar la página
     const queryString = params.toString();
-    router.push(queryString ? `/catalogo?${queryString}` : '/catalogo', { scroll: false });
+    router.push(`/catalogo?${queryString}`, { scroll: false });
   }, [router]);
 
   const handleClearFilters = useCallback(() => {
     router.push('/catalogo', { scroll: false });
   }, [router]);
 
-  const handleVerMasConjuntos = () => {
-    setLoadingMoreConjuntos(true);
-    setTimeout(() => {
-      setCantidadConjuntosMostrada(prev => prev + CONJUNTOS_POR_PAGINA);
-      setLoadingMoreConjuntos(false);
-    }, 300);
-  };
+  const handlePageChange = useCallback((newPage) => {
+    console.log('=== INICIANDO CAMBIO DE PÁGINA ===');
+    console.log('Nueva página:', newPage);
+    console.log('searchParams actual:', searchParams.toString());
+    
+    const params = new URLSearchParams(searchParams);
+    console.log('Params después de copiar:', params.toString());
+    
+    params.set('page', newPage.toString());
+    console.log('Params después de setear page:', params.toString());
+    
+    const finalUrl = `/catalogo?${params.toString()}`;
+    console.log('URL final:', finalUrl);
+    
+    router.push(finalUrl);
+    
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [router, searchParams]);
 
-  const hayMasConjuntos = cantidadConjuntosMostrada < data.conjuntos.length;
-
-  if (loading) {
+  if (isLoading) {
     return <LoadingSpinner />;
   }
+
+  if (error) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-20 text-center">
+        <p className="text-red-600">Error al cargar productos. Por favor, intenta de nuevo.</p>
+      </div>
+    );
+  }
+
+  // Calcular paginación de conjuntos
+  const totalConjuntos = data?.conjuntos.length || 0;
+  const totalPages = Math.ceil(totalConjuntos / CONJUNTOS_POR_PAGINA);
+  const startIndex = (currentPage - 1) * CONJUNTOS_POR_PAGINA;
+  const endIndex = startIndex + CONJUNTOS_POR_PAGINA;
+  const conjuntosMostrados = data?.conjuntos.slice(startIndex, endIndex) || [];
+  const productosSueltos = data?.productosSueltos || [];
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-12">
@@ -110,25 +106,23 @@ export default function CatalogoContent() {
 
       <ProductGrid 
         conjuntos={conjuntosMostrados} 
-        productosSueltos={data.productosSueltos}
+        productosSueltos={productosSueltos}
       />
 
-      {hayMasConjuntos && (
-        <div className="text-center mt-12">
-          <button
-            onClick={handleVerMasConjuntos}
-            disabled={loadingMoreConjuntos}
-            className="px-12 py-4 border-2 border-gray-900 text-gray-900 font-light tracking-widest uppercase text-sm hover:bg-gray-900 hover:text-white transition-all duration-300 disabled:opacity-50"
-          >
-            {loadingMoreConjuntos ? 'Cargando...' : `Ver Más Conjuntos (${data.conjuntos.length - cantidadConjuntosMostrada} restantes)`}
-          </button>
-        </div>
+      {/* Paginación de Conjuntos */}
+      {totalPages > 1 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={handlePageChange}
+        />
       )}
 
-      {!hayMasConjuntos && data.conjuntos.length > CONJUNTOS_POR_PAGINA && (
+      {/* Mensaje si no hay conjuntos pero sí productos sueltos */}
+      {conjuntosMostrados.length === 0 && productosSueltos.length > 0 && (
         <div className="text-center mt-12">
           <p className="text-gray-500 text-sm font-light">
-            Has visto todos los conjuntos ({data.conjuntos.length} en total)
+            No hay más conjuntos. Todas las piezas individuales se muestran arriba.
           </p>
         </div>
       )}

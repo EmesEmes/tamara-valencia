@@ -5,18 +5,30 @@ import { TIPOS_PRODUCTO, CATEGORIAS_PRODUCTO, MATERIALES_PRODUCTO } from '@/lib/
 export default function Filters({ filters, onFilterChange, onClearFilters }) {
   const [localFilters, setLocalFilters] = useState(filters);
   const isFirstRender = useRef(true);
+  const previousFilters = useRef(filters);
 
   // Debounce para precios
   useEffect(() => {
     // Evitar ejecutar en el primer render
     if (isFirstRender.current) {
       isFirstRender.current = false;
+      previousFilters.current = localFilters;
+      return;
+    }
+
+    // Solo ejecutar si los filtros realmente cambiaron
+    const filtersChanged = 
+      localFilters.precioMin !== previousFilters.current.precioMin ||
+      localFilters.precioMax !== previousFilters.current.precioMax;
+
+    if (!filtersChanged) {
       return;
     }
 
     const timeoutId = setTimeout(() => {
       onFilterChange(localFilters);
-    }, 1000); // Espera 800ms después de que el usuario deje de escribir
+      previousFilters.current = localFilters;
+    }, 800);
 
     return () => clearTimeout(timeoutId);
   }, [localFilters.precioMin, localFilters.precioMax, localFilters, onFilterChange]);
@@ -24,6 +36,7 @@ export default function Filters({ filters, onFilterChange, onClearFilters }) {
   // Actualizar filtros locales cuando cambien los externos (ej: al limpiar)
   useEffect(() => {
     setLocalFilters(filters);
+    previousFilters.current = filters;
   }, [filters]);
 
   const handleChange = (e) => {
@@ -37,6 +50,7 @@ export default function Filters({ filters, onFilterChange, onClearFilters }) {
     // Para los selects (tipo, categoria, material), aplicar inmediatamente
     if (name !== 'precioMin' && name !== 'precioMax') {
       onFilterChange(newFilters);
+      previousFilters.current = newFilters;
     }
   };
 

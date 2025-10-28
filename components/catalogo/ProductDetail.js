@@ -63,12 +63,14 @@ export default function ProductDetail({ productId }) {
         <h2 className="text-2xl font-light text-gray-900 mb-4">
           Producto no encontrado
         </h2>
+        <div className="mb-8">
         <Link
           href="/catalogo"
-          className="text-gray-600 hover:text-gray-900 underline"
+          className="text-gray-600 hover:text-gray-900 text-sm"
         >
-          Volver al catálogo
+          ← Volver al catálogo
         </Link>
+      </div>
       </div>
     );
   }

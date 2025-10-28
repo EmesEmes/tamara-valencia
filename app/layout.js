@@ -1,6 +1,7 @@
 import './globals.css'
 import { Cormorant_Garamond } from 'next/font/google'
 import localFont from 'next/font/local'
+import { Providers } from './providers'
 
 const cormorant = Cormorant_Garamond({ 
   weight: ['300', '400', '600', '700'],
@@ -38,7 +39,9 @@ export default function RootLayout({ children }) {
   return (
     <html lang="es">
       <body className={`${cormorant.variable} ${biloxiScript.variable} font-sans antialiased`}>
-        {children}
+        <Providers>
+          {children}
+        </Providers>
       </body>
     </html>
   )
