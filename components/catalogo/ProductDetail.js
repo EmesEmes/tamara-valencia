@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { useRouter } from 'next/navigation';
+import { useRouter } from "next/navigation";
 import {
   getProductoById,
   getProductosPorConjunto,
@@ -64,13 +64,13 @@ export default function ProductDetail({ productId }) {
           Producto no encontrado
         </h2>
         <div className="mb-8">
-        <Link
-          href="/catalogo"
-          className="text-gray-600 hover:text-gray-900 text-sm"
-        >
-          ← Volver al catálogo
-        </Link>
-      </div>
+          <Link
+            href="/catalogo"
+            className="text-gray-600 hover:text-gray-900 text-sm"
+          >
+            ← Volver al catálogo
+          </Link>
+        </div>
       </div>
     );
   }
@@ -120,79 +120,90 @@ export default function ProductDetail({ productId }) {
         </div>
 
         {/* Información */}
-<div className="space-y-6">
-  {producto.conjunto && (
-    <p className="text-sm text-gray-500 uppercase tracking-wider">
-      Juego: {producto.conjunto.nombre}
-    </p>
-  )}
+        <div className="space-y-6">
+          {producto.conjunto && (
+            <p className="text-sm text-gray-500 uppercase tracking-wider">
+              Juego: {producto.conjunto.nombre}
+            </p>
+          )}
 
-  {/* Tipo como título principal */}
-  <h1 className="font-elegant text-4xl md:text-5xl font-light text-gray-900">
-    {producto.nombre_comercial}
-  </h1>
+          {/* Tipo como título principal */}
+          <h1 className="font-elegant text-4xl md:text-5xl font-light text-gray-900">
+            {producto.nombre_comercial}
+          </h1>
 
-  <div className="w-16 h-px bg-[#FFF2E0]"></div>
+          <div className="w-16 h-px bg-[#FFF2E0]"></div>
 
-  <p className="text-3xl font-light text-gray-900">
-    {formatPrice(redondearPrecio(calcularPrecio(producto)))}
-  </p>
+          <p className="text-3xl font-light text-gray-900">
+            {formatPrice(redondearPrecio(calcularPrecio(producto)))}
+          </p>
 
-  <div className="space-y-3 text-gray-600">
-    <p>
-      <span className="font-medium">Código:</span> {producto.codigo}
-    </p>
-    {/* <p>
+          <div className="space-y-3 text-gray-600">
+            <p>
+              <span className="font-medium">Código:</span> {producto.codigo}
+            </p>
+            {/* <p>
       <span className="font-medium">Nombre:</span> {producto.nombre_comercial}
     </p> */}
-    <p>
-      <span className="font-medium">Material:</span> {producto.material}
-    </p>
-    <p>
-      <span className="font-medium">Categoría:</span> {producto.categoria}
-    </p>
-    {producto.talla && (
-      <p>
-        <span className="font-medium">Talla:</span> {producto.talla}
-      </p>
-    )}
-    {producto.factor && (
-      <p>
-        <span className="font-medium">Acabado:</span> {producto.factor.nombre}
-      </p>
-    )}
-    <p>
-      <span className="font-medium">Disponibilidad:</span>{' '}
-      <span className={
-        producto.stock > 5 ? 'text-green-600' : 
-        producto.stock > 0 ? 'text-yellow-600' : 
-        'text-red-600'
-      }>
-        {producto.stock > 0 ? `${producto.stock} en stock` : 'Agotado'}
-      </span>
-    </p>
-  </div>
+            <p>
+              <span className="font-medium">Material:</span> {producto.material}
+            </p>
+            <p>
+              <span className="font-medium">Categoría:</span>{" "}
+              {producto.categoria}
+            </p>
+            {producto.talla && (
+              <p>
+                <span className="font-medium">Talla:</span> {producto.talla}
+              </p>
+            )}
+            {producto.factor && (
+              <p>
+                <span className="font-medium">Acabado:</span>{" "}
+                {producto.factor.nombre}
+              </p>
+            )}
+            <p>
+              <span className="font-medium">Disponibilidad:</span>{" "}
+              <span
+                className={
+                  producto.stock > 5
+                    ? "text-green-600"
+                    : producto.stock > 0
+                    ? "text-yellow-600"
+                    : "text-red-600"
+                }
+              >
+                {producto.stock > 0 ? `${producto.stock} en stock` : "Agotado"}
+              </span>
+            </p>
+          </div>
 
-  {producto.descripcion && (
-    <div className="pt-6 border-t border-gray-200">
-      <h3 className="font-medium text-gray-900 mb-2">Descripción</h3>
-      <p className="text-gray-600 leading-relaxed font-light">
-        {producto.descripcion}
-      </p>
-    </div>
-  )}
+          {producto.descripcion && (
+            <div className="pt-6 border-t border-gray-200">
+              <h3 className="font-medium text-gray-900 mb-2">Descripción</h3>
+              <p className="text-gray-600 leading-relaxed font-light">
+                {producto.descripcion}
+              </p>
+            </div>
+          )}
 
-  <div className="pt-6">
-    <a 
-      href={`https://wa.me/593998444531?text=Hola, estoy interesado en ${producto.nombre_comercial} (${producto.codigo})`}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="inline-block w-full md:w-auto px-12 py-4 bg-gray-900 text-white text-center font-light tracking-widest uppercase text-sm hover:bg-gray-800 transition-all duration-300"
-    >
-      Consultar por WhatsApp
-    </a>
-  </div>
+          <div className="pt-6">
+  <a 
+    href={`https://wa.me/593998444531?text=${encodeURIComponent(
+      `Hola! Me interesa esta joya:\n\n` +
+      `*${producto.nombre_comercial}*\n` +
+      `Código: ${producto.codigo}\n` +
+      `Ver más: ${typeof window !== 'undefined' ? window.location.origin : ''}/catalogo/${productId}`
+    )}`}
+    target="_blank"
+    rel="noopener noreferrer"
+    className="inline-block w-full md:w-auto px-12 py-4 bg-gray-900 text-white text-center font-light tracking-widest uppercase text-sm hover:bg-gray-800 transition-all duration-300"
+  >
+    Consultar por WhatsApp
+  </a>
 </div>
+        </div>
       </div>
 
       {/* Productos del mismo conjunto */}
