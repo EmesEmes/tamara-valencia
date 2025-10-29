@@ -22,7 +22,7 @@ export default function AdminNav() {
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center space-x-8">
             <Link href="/admin" className="font-elegant text-xl font-light">
-              Tamara Valencia Joyas- Admin
+              Tamara Valencia Joyas - Admin
             </Link>
 
             <div className="hidden md:flex items-center space-x-6">
@@ -49,6 +49,14 @@ export default function AdminNav() {
                 }`}
               >
                 Conjuntos
+              </Link>
+              <Link 
+                href="/admin/factores" 
+                className={`text-sm uppercase tracking-wider transition-colors ${
+                  isActive('/admin/factores') ? 'text-white' : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                Factores
               </Link>
               <Link 
                 href="/" 
@@ -101,6 +109,13 @@ export default function AdminNav() {
               onClick={() => setIsOpen(false)}
             >
               Conjuntos
+            </Link>
+            <Link
+              href="/admin/factores"
+              className="block px-3 py-2 text-sm uppercase tracking-wider hover:bg-gray-800"
+              onClick={() => setIsOpen(false)}
+            >
+              Factores
             </Link>
             <Link
               href="/"

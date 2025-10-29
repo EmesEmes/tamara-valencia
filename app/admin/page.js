@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase/client';
+import { useInventarioStats } from '@/lib/hooks/useInventarioStats';
 import Link from 'next/link';
 import LoadingSpinner from '@/components/shared/LoadingSpinner';
 
@@ -11,6 +12,9 @@ export default function AdminDashboard() {
     productosActivos: 0,
   });
   const [loading, setLoading] = useState(true);
+
+  // Obtener estadísticas de inventario con React Query
+  const { data: inventarioData, isLoading: inventarioLoading } = useInventarioStats();
 
   useEffect(() => {
     fetchStats();
@@ -45,6 +49,15 @@ export default function AdminDashboard() {
     }
   };
 
+  const formatCurrency = (value) => {
+    return new Intl.NumberFormat('es-EC', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(value);
+  };
+
   if (loading) {
     return <LoadingSpinner />;
   }
@@ -55,8 +68,8 @@ export default function AdminDashboard() {
         Dashboard
       </h1>
 
-      {/* Estadísticas */}
-      <div className="grid md:grid-cols-3 gap-6 mb-12">
+      {/* Estadísticas Generales */}
+      <div className="grid md:grid-cols-3 gap-6 mb-8">
         <div className="bg-white p-6 border border-gray-200 shadow-sm">
           <p className="text-gray-600 text-sm uppercase tracking-wider mb-2">
             Total Productos
@@ -76,6 +89,51 @@ export default function AdminDashboard() {
             Total Conjuntos
           </p>
           <p className="text-4xl font-light text-gray-900">{stats.totalConjuntos}</p>
+        </div>
+      </div>
+
+      {/* Estadísticas de Inventario */}
+      <h2 className="text-2xl font-light text-gray-900 mb-4">Valor de Inventario</h2>
+      <div className="grid md:grid-cols-2 gap-6 mb-12">
+        <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-6 border border-blue-200 shadow-sm">
+          <p className="text-blue-800 text-sm uppercase tracking-wider mb-2 font-medium">
+            Valor de Inventario (Calculado)
+          </p>
+          {inventarioLoading ? (
+            <p className="text-2xl font-light text-blue-900">Cargando...</p>
+          ) : (
+            <>
+              <p className="text-4xl font-light text-blue-900 mb-2">
+                {formatCurrency(inventarioData?.valorCalculado || 0)}
+              </p>
+              <p className="text-xs text-blue-700">
+                Basado en peso × factor × stock
+              </p>
+            </>
+          )}
+        </div>
+
+        <div className="bg-gradient-to-br from-green-50 to-green-100 p-6 border border-green-200 shadow-sm">
+          <p className="text-green-800 text-sm uppercase tracking-wider mb-2 font-medium">
+            Valor Final de Inventario
+          </p>
+          {inventarioLoading ? (
+            <p className="text-2xl font-light text-green-900">Cargando...</p>
+          ) : (
+            <>
+              <p className="text-4xl font-light text-green-900 mb-2">
+                {formatCurrency(inventarioData?.valorFinal || 0)}
+              </p>
+              <p className="text-xs text-green-700">
+                Precio final redondeado × stock
+              </p>
+              {inventarioData && (
+                <p className="text-xs text-green-600 mt-2">
+                  Margen: {formatCurrency(inventarioData.valorFinal - inventarioData.valorCalculado)}
+                </p>
+              )}
+            </>
+          )}
         </div>
       </div>
 
