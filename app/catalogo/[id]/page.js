@@ -30,7 +30,7 @@ export async function generateMetadata({ params }) {
       description: producto.descripcion || `${producto.nombre_comercial} - ${producto.categoria} - ${producto.material}`,
       openGraph: {
         title: `${producto.nombre_comercial}`,
-        description: `${producto.categoria} de ${producto.material} - Precio: $${precioFinal}`,
+        description: `${producto.descripcion}`,
         images: [
           {
             url: producto.imagen_url,
