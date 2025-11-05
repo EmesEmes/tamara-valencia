@@ -81,6 +81,9 @@ export default function ProductCard({ producto }) {
         {producto.stock === 0 && (
           <p className="text-xs text-red-600 mt-1">Agotado</p>
         )}
+        <p className="text-sm text-gray-500 uppercase tracking-wider mb-2">
+          Cod: {producto.codigo}
+        </p>
       </div>
     </Link>
   );
