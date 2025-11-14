@@ -2,8 +2,15 @@
 import Link from "next/link";
 import Image from "next/image";
 import { formatPrice } from "@/utils/formatters";
+import { useCartStore } from "@/lib/cartStore";
+import { useState } from "react";
 
 export default function ProductCard({ producto }) {
+  const [agregado, setAgregado] = useState(false);
+  const addItem = useCartStore((state) => state.addItem);
+  const canAddMore = useCartStore((state) => state.canAddMore);
+  const isInCart = useCartStore((state) => state.isInCart);
+
   // Funciones para calcular precio
   const calcularPrecio = (prod) => {
     if (!prod.peso || !prod.factor || !prod.factor.valor) return 0;
@@ -16,6 +23,20 @@ export default function ProductCard({ producto }) {
   };
 
   const precioFinal = redondearPrecio(calcularPrecio(producto));
+  const enCarrito = isInCart(producto.id);
+  const puedeAgregar = producto.stock > 0 && canAddMore(producto.id, producto.stock);
+
+  const handleAddToCart = (e) => {
+    e.preventDefault(); // Prevenir navegación del Link
+    e.stopPropagation();
+    
+    const added = addItem(producto);
+    
+    if (added) {
+      setAgregado(true);
+      setTimeout(() => setAgregado(false), 1500);
+    }
+  };
 
   return (
     <Link
@@ -48,6 +69,29 @@ export default function ProductCard({ producto }) {
             </svg>
           </div>
         )}
+        
+        {/* Botón flotante en la imagen */}
+        {puedeAgregar && (
+          <button
+            onClick={handleAddToCart}
+            className={`absolute bottom-4 right-4 p-3 rounded-full shadow-lg transition-all duration-300 ${
+              agregado
+                ? 'bg-green-600 scale-110'
+                : 'bg-white hover:bg-gray-900 hover:text-white'
+            }`}
+            title="Agregar al carrito"
+          >
+            {agregado ? (
+              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+              </svg>
+            ) : (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+              </svg>
+            )}
+          </button>
+        )}
       </div>
 
       <div className="p-4">
@@ -57,15 +101,17 @@ export default function ProductCard({ producto }) {
         <p className="text-sm text-gray-600 uppercase tracking-wider mb-2">
           {producto.material}
         </p>
-        <p className="text-sm text-gray-500 uppercase tracking-wider mb-2">
-          {producto.talla}
-        </p>
+        {producto.talla && (
+          <p className="text-sm text-gray-500 uppercase tracking-wider mb-2">
+            {producto.talla}
+          </p>
+        )}
         <p className="font-light text-xl text-gray-900">
           {precioFinal > 0 ? formatPrice(precioFinal) : 'Precio no disponible'}
         </p>
         {producto.stock > 3 && (
           <p className="text-xs mt-1 text-green-600">
-            Productos en stock: {producto.stock}
+            En stock: {producto.stock}
           </p>
         )}
         {producto.stock <= 3 && producto.stock > 1 && (
@@ -75,13 +121,18 @@ export default function ProductCard({ producto }) {
         )}
         {producto.stock === 1 && (
           <p className="text-xs text-red-500 mt-1">
-            ¡Solo queda {producto.stock}!
+            ¡Última unidad!
           </p>
         )}
         {producto.stock === 0 && (
           <p className="text-xs text-red-600 mt-1">Agotado</p>
         )}
-        <p className="text-sm text-gray-500 uppercase tracking-wider mb-2">
+        {enCarrito && puedeAgregar && (
+          <p className="text-xs text-gray-500 mt-1">
+            ✓ En carrito
+          </p>
+        )}
+        <p className="text-sm text-gray-500 uppercase tracking-wider mt-2">
           Cod: {producto.codigo}
         </p>
       </div>

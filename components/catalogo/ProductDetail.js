@@ -10,12 +10,21 @@ import Link from "next/link";
 import { formatPrice } from "@/utils/formatters";
 import LoadingSpinner from "@/components/shared/LoadingSpinner";
 import ProductCard from "./ProductCard";
+import { useCartStore } from "@/lib/cartStore";
 
 export default function ProductDetail({ productId }) {
   const router = useRouter();
   const [producto, setProducto] = useState(null);
   const [productosConjunto, setProductosConjunto] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [agregado, setAgregado] = useState(false);
+  const [sinStock, setSinStock] = useState(false);
+
+  // Cart store
+  const addItem = useCartStore((state) => state.addItem);
+  const isInCart = useCartStore((state) => state.isInCart);
+  const getItemQuantity = useCartStore((state) => state.getItemQuantity);
+  const canAddMore = useCartStore((state) => state.canAddMore);
 
   const calcularPrecio = (prod) => {
     if (!prod.peso || !prod.factor || !prod.factor.valor) return 0;
@@ -53,6 +62,28 @@ export default function ProductDetail({ productId }) {
     fetchData();
   }, [productId]);
 
+  const handleAddToCart = () => {
+    if (producto) {
+      const added = addItem(producto);
+      
+      if (added) {
+        setAgregado(true);
+        setSinStock(false);
+        
+        // Resetear el mensaje después de 2 segundos
+        setTimeout(() => {
+          setAgregado(false);
+        }, 2000);
+      } else {
+        // No se pudo agregar porque no hay más stock
+        setSinStock(true);
+        setTimeout(() => {
+          setSinStock(false);
+        }, 3000);
+      }
+    }
+  };
+
   if (loading) {
     return <LoadingSpinner />;
   }
@@ -74,6 +105,10 @@ export default function ProductDetail({ productId }) {
       </div>
     );
   }
+
+  const enCarrito = isInCart(producto.id);
+  const cantidadEnCarrito = getItemQuantity(producto.id);
+  const puedeAgregarMas = canAddMore(producto.id, producto.stock);
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-12">
@@ -142,9 +177,6 @@ export default function ProductDetail({ productId }) {
             <p>
               <span className="font-medium">Código:</span> {producto.codigo}
             </p>
-            {/* <p>
-      <span className="font-medium">Nombre:</span> {producto.nombre_comercial}
-    </p> */}
             <p>
               <span className="font-medium">Material:</span> {producto.material}
             </p>
@@ -188,21 +220,55 @@ export default function ProductDetail({ productId }) {
             </div>
           )}
 
-          <div className="pt-6">
-  <a 
-    href={`https://wa.me/593998444531?text=${encodeURIComponent(
-      `Hola! Me interesa esta joya:\n\n` +
-      `*${producto.nombre_comercial}*\n` +
-      `Código: ${producto.codigo}\n` +
-      `Ver más: ${typeof window !== 'undefined' ? window.location.origin : ''}/catalogo/${productId}`
-    )}`}
-    target="_blank"
-    rel="noopener noreferrer"
-    className="inline-block w-full md:w-auto px-12 py-4 bg-gray-900 text-white text-center font-light tracking-widest uppercase text-sm hover:bg-gray-800 transition-all duration-300"
-  >
-    Consultar por WhatsApp
-  </a>
-</div>
+          {/* Botones de acción */}
+          <div className="pt-6 space-y-4">
+            {/* Mensaje de stock insuficiente */}
+            {sinStock && (
+              <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 text-sm">
+                Ya tienes todo el stock disponible en tu carrito
+              </div>
+            )}
+
+            {/* Botón Agregar al Carrito */}
+            <button
+              onClick={handleAddToCart}
+              disabled={producto.stock === 0 || !puedeAgregarMas}
+              className={`w-full md:w-auto px-12 py-4 text-center font-light tracking-widest uppercase text-sm transition-all duration-300 ${
+                producto.stock === 0
+                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  : !puedeAgregarMas
+                  ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
+                  : agregado
+                  ? 'bg-green-600 text-white'
+                  : 'bg-[#FFF2E0] text-gray-900 hover:bg-[#ffe8c5]'
+              }`}
+            >
+              {producto.stock === 0 
+                ? 'Sin stock' 
+                : agregado 
+                ? '✓ Agregado al carrito' 
+                : !puedeAgregarMas && enCarrito
+                ? `Stock máximo en carrito (${cantidadEnCarrito})`
+                : enCarrito 
+                ? `Agregar más (${cantidadEnCarrito} en carrito)` 
+                : 'Agregar al carrito'}
+            </button>
+
+            {/* Botón WhatsApp */}
+            <a 
+              href={`https://wa.me/593998444531?text=${encodeURIComponent(
+                `Hola! Me interesa esta joya:\n\n` +
+                `*${producto.nombre_comercial}*\n` +
+                `Código: ${producto.codigo}\n` +
+                `Ver más: ${typeof window !== 'undefined' ? window.location.origin : ''}/catalogo/${productId}`
+              )}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-block w-full md:w-auto px-12 py-4 bg-gray-900 text-white text-center font-light tracking-widest uppercase text-sm hover:bg-gray-800 transition-all duration-300"
+            >
+              Consultar por WhatsApp
+            </a>
+          </div>
         </div>
       </div>
 

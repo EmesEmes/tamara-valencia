@@ -1,173 +1,157 @@
-// app/page.js
-'use client';
+"use client";
+import Link from "next/link";
+import Image from "next/image";
+import { formatPrice } from "@/utils/formatters";
+import { useCartStore } from "@/lib/cartStore";
+import { useState } from "react";
 
-import { useState, useEffect } from 'react';
-import Link from 'next/link';
+export default function ProductCard({ producto }) {
+  const [agregado, setAgregado] = useState(false);
+  const addItem = useCartStore((state) => state.addItem);
+  const canAddMore = useCartStore((state) => state.canAddMore);
+  const isInCart = useCartStore((state) => state.isInCart);
 
-export default function Home() {
-  const [scrolled, setScrolled] = useState(false);
+  const calcularPrecio = (prod) => {
+    if (!prod.peso || !prod.factor || !prod.factor.valor) return 0;
+    return parseFloat(prod.peso) * parseFloat(prod.factor.valor);
+  };
 
-  useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 50);
-    };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  const redondearPrecio = (precio) => {
+    if (!precio || precio === 0) return 0;
+    return Math.ceil(precio / 5) * 5;
+  };
+
+  const precioFinal = redondearPrecio(calcularPrecio(producto));
+  const enCarrito = isInCart(producto.id);
+  const puedeAgregar = producto.stock > 0 && canAddMore(producto.id, producto.stock);
+
+  const handleAddToCart = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const added = addItem(producto);
+    
+    if (added) {
+      setAgregado(true);
+      setTimeout(() => setAgregado(false), 1500);
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* Navigation */}
-      <nav className={`fixed w-full z-50 transition-all duration-300 ${
-        scrolled ? 'bg-white/95 backdrop-blur-sm shadow-sm' : 'bg-transparent'
-      }`}>
-        <div className="max-w-7xl mx-auto px-6 py-6">
-          <div className="flex justify-between items-center">
-            <Link href="/" className="text-2xl font-light tracking-widest text-gray-900">
-              LUMIÈRE
-            </Link>
-            <div className="flex gap-12">
-              <Link 
-                href="/" 
-                className="text-sm tracking-wide text-gray-900 hover:text-gray-600 transition-colors border-b border-gray-900"
-              >
-                INICIO
-              </Link>
-              <Link 
-                href="/catalogo" 
-                className="text-sm tracking-wide text-gray-900 hover:text-gray-600 transition-colors"
-              >
-                CATÁLOGO
-              </Link>
-            </div>
+    <Link
+      href={`/catalogo/${producto.id}`}
+      className="group block bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1"
+    >
+      {/* Imagen con overlay sutil */}
+      <div className="relative aspect-square bg-gray-50 overflow-hidden">
+        {producto.imagen_url ? (
+          <>
+            <Image
+              src={producto.imagen_url}
+              alt={producto.nombre_comercial}
+              fill
+              className="object-cover group-hover:scale-110 transition-transform duration-500"
+              sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
+            />
+            {/* Overlay sutil en hover */}
+            <div className="absolute inset-0 bg-black opacity-0 group-hover:opacity-5 transition-opacity duration-300"></div>
+          </>
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <svg
+              className="w-20 h-20 text-gray-300"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="0.5"
+                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+              ></path>
+            </svg>
           </div>
-        </div>
-      </nav>
-
-      {/* Hero Section */}
-      <section className="relative h-screen flex items-center justify-center">
-        <div className="absolute inset-0 bg-gradient-to-b from-gray-50 to-white" />
-        <div className="relative z-10 text-center px-6">
-          <h1 className="text-6xl md:text-8xl font-extralight tracking-wider text-gray-900 mb-6">
-            Elegancia Atemporal
-          </h1>
-          <p className="text-lg md:text-xl text-gray-600 font-light tracking-wide mb-12 max-w-2xl mx-auto">
-            Piezas únicas diseñadas para momentos inolvidables
-          </p>
-          <Link 
-            href="/catalogo"
-            className="inline-block px-12 py-4 border border-gray-900 text-gray-900 tracking-widest text-sm hover:bg-gray-900 hover:text-white transition-all duration-300"
+        )}
+        
+        {/* Badge de stock - Esquina superior izquierda */}
+        {producto.stock > 3 && (
+          <div className="absolute top-3 left-3 bg-green-600 text-white text-xs px-3 py-1 rounded-full font-medium shadow-md">
+            Stock: {producto.stock}
+          </div>
+        )}
+        {producto.stock <= 3 && producto.stock > 1 && (
+          <div className="absolute top-3 left-3 bg-orange-600 text-white text-xs px-3 py-1 rounded-full font-medium shadow-md">
+            ¡Solo {producto.stock}!
+          </div>
+        )}
+        {producto.stock === 1 && (
+          <div className="absolute top-3 left-3 bg-red-500 text-white text-xs px-3 py-1 rounded-full font-medium shadow-md">
+            ¡Última!
+          </div>
+        )}
+        {producto.stock === 0 && (
+          <div className="absolute top-3 left-3 bg-gray-900 text-white text-xs px-3 py-1 rounded-full font-medium shadow-md">
+            Agotado
+          </div>
+        )}
+        
+        {/* Botón flotante - Esquina inferior derecha */}
+        {puedeAgregar && (
+          <button
+            onClick={handleAddToCart}
+            className={`absolute bottom-4 right-4 p-3.5 rounded-full shadow-lg backdrop-blur-sm transition-all duration-300 ${
+              agregado
+                ? 'bg-green-600 scale-110'
+                : 'bg-white/90 hover:bg-gray-900 hover:text-white hover:scale-110'
+            }`}
+            title="Agregar al carrito"
           >
-            EXPLORAR COLECCIÓN
-          </Link>
-        </div>
-        <div className="absolute bottom-10 left-1/2 transform -translate-x-1/2">
-          <div className="w-px h-16 bg-gray-300 animate-bounce" />
-        </div>
-      </section>
+            {agregado ? (
+              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
+              </svg>
+            ) : (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+              </svg>
+            )}
+          </button>
+        )}
+      </div>
 
-      {/* Featured Collection */}
-      <section className="py-32 px-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-20">
-            <h2 className="text-4xl md:text-5xl font-light tracking-wider text-gray-900 mb-4">
-              Colección Destacada
-            </h2>
-            <div className="w-24 h-px bg-gray-900 mx-auto" />
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {[
-              { name: 'Anillos', desc: 'Diseños exclusivos' },
-              { name: 'Collares', desc: 'Elegancia refinada' },
-              { name: 'Aretes', desc: 'Detalles perfectos' }
-            ].map((item, i) => (
-              <div key={i} className="group cursor-pointer">
-                <div className="aspect-square bg-gray-100 mb-6 relative overflow-hidden">
-                  <div className="absolute inset-0 bg-gradient-to-br from-gray-200 to-gray-100 group-hover:scale-105 transition-transform duration-500" />
-                </div>
-                <h3 className="text-xl tracking-wider text-gray-900 mb-2">
-                  {item.name}
-                </h3>
-                <p className="text-sm text-gray-500 tracking-wide">
-                  {item.desc}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* About Section */}
-      <section className="py-32 px-6 bg-gray-50">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-4xl md:text-5xl font-light tracking-wider text-gray-900 mb-8">
-            Crafted with Passion
-          </h2>
-          <p className="text-lg text-gray-600 leading-relaxed mb-6">
-            Cada pieza es cuidadosamente diseñada y elaborada por artesanos expertos, 
-            combinando técnicas tradicionales con diseño contemporáneo.
+      {/* Información del producto */}
+      <div className="p-5">
+        <h3 className="font-light text-lg text-gray-900 mb-1 line-clamp-2">
+          {producto.nombre_comercial}
+        </h3>
+        
+        <p className="text-sm text-gray-600 uppercase tracking-wider mb-2">
+          {producto.material}
+        </p>
+        
+        {producto.talla && (
+          <p className="text-sm text-gray-500 uppercase tracking-wider mb-2">
+            {producto.talla}
           </p>
-          <p className="text-lg text-gray-600 leading-relaxed">
-            Nuestra misión es crear joyas que cuenten historias y perduren generaciones.
+        )}
+        
+        {/* Precio y indicador "En carrito" en la misma línea */}
+        <div className="flex items-center justify-between mb-2">
+          <p className="font-light text-xl text-gray-900">
+            {precioFinal > 0 ? formatPrice(precioFinal) : 'Precio no disponible'}
           </p>
+          {enCarrito && (
+            <span className="text-xs text-green-600 font-medium">
+              ✓ En carrito
+            </span>
+          )}
         </div>
-      </section>
-
-      {/* Values Section */}
-      <section className="py-32 px-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-16">
-            {[
-              { title: 'Calidad Premium', desc: 'Materiales nobles seleccionados' },
-              { title: 'Diseño Único', desc: 'Piezas exclusivas y originales' },
-              { title: 'Artesanía', desc: 'Elaboración manual detallada' }
-            ].map((item, i) => (
-              <div key={i} className="text-center">
-                <div className="w-16 h-16 mx-auto mb-6 border border-gray-300 flex items-center justify-center">
-                  <div className="w-2 h-2 bg-gray-900" />
-                </div>
-                <h3 className="text-xl tracking-wider text-gray-900 mb-3">
-                  {item.title}
-                </h3>
-                <p className="text-gray-600 tracking-wide">
-                  {item.desc}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="py-32 px-6 bg-gray-900 text-white">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-4xl md:text-5xl font-light tracking-wider mb-8">
-            Encuentra Tu Pieza Perfecta
-          </h2>
-          <p className="text-lg text-gray-300 mb-12 tracking-wide">
-            Explora nuestra colección completa y descubre la joya ideal para ti
-          </p>
-          <Link 
-            href="/catalogo"
-            className="inline-block px-12 py-4 border border-white text-white tracking-widest text-sm hover:bg-white hover:text-gray-900 transition-all duration-300"
-          >
-            VER CATÁLOGO
-          </Link>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="py-12 px-6 border-t border-gray-200">
-        <div className="max-w-7xl mx-auto text-center">
-          <div className="text-2xl font-light tracking-widest text-gray-900 mb-4">
-            LUMIÈRE
-          </div>
-          <p className="text-sm text-gray-500 tracking-wide">
-            © 2025 Todos los derechos reservados
-          </p>
-        </div>
-      </footer>
-    </div>
+        
+        <p className="text-sm text-gray-500 uppercase tracking-wider">
+          Cod: {producto.codigo}
+        </p>
+      </div>
+    </Link>
   );
 }
