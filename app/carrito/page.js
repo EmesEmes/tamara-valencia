@@ -5,6 +5,7 @@ import Footer from '@/components/ui/Footer';
 import Image from 'next/image';
 import Link from 'next/link';
 import { formatPrice } from '@/utils/formatters';
+import PayPhoneButton from '@/components/payphone/PayPhoneButton';
 
 export default function CarritoPage() {
   const items = useCartStore((state) => state.items);
@@ -214,6 +215,7 @@ export default function CarritoPage() {
                       <span>{formatPrice(subtotal)}</span>
                     </div>
                   </div>
+                  <PayPhoneButton />
 
                   <button
                     onClick={handleWhatsAppCheckout}
