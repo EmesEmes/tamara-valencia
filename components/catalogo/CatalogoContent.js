@@ -18,6 +18,7 @@ export default function CatalogoContent() {
     tipo: searchParams.get('tipo') || '',
     categoria: searchParams.get('categoria') || '',
     material: searchParams.get('material') || '',
+    conjunto: searchParams.get('conjunto') || '',
     precioMin: searchParams.get('precioMin') || '',
     precioMax: searchParams.get('precioMax') || ''
   }), [searchParams]);
@@ -37,6 +38,7 @@ export default function CatalogoContent() {
     if (newFilters.tipo) params.set('tipo', newFilters.tipo);
     if (newFilters.categoria) params.set('categoria', newFilters.categoria);
     if (newFilters.material) params.set('material', newFilters.material);
+    if (newFilters.conjunto) params.set('conjunto', newFilters.conjunto);
     if (newFilters.precioMin) params.set('precioMin', newFilters.precioMin);
     if (newFilters.precioMax) params.set('precioMax', newFilters.precioMax);
     // Reset a página 1 al cambiar filtros
