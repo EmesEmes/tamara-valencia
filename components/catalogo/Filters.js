@@ -1,11 +1,20 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { TIPOS_PRODUCTO, CATEGORIAS_PRODUCTO, MATERIALES_PRODUCTO } from '@/lib/constants';
+import { getConjuntos } from '@/lib/supabase/client';
 
 export default function Filters({ filters, onFilterChange, onClearFilters }) {
   const [localFilters, setLocalFilters] = useState(filters);
   const isFirstRender = useRef(true);
   const previousFilters = useRef(filters);
+
+  // Cargar conjuntos
+  const { data: conjuntos = [] } = useQuery({
+    queryKey: ['conjuntos'],
+    queryFn: getConjuntos,
+    staleTime: 10 * 60 * 1000, // 10 minutos
+  });
 
   // Debounce para precios
   useEffect(() => {
@@ -47,7 +56,7 @@ export default function Filters({ filters, onFilterChange, onClearFilters }) {
     };
     setLocalFilters(newFilters);
 
-    // Para los selects (tipo, categoria, material), aplicar inmediatamente
+    // Para los selects (tipo, categoria, material, conjunto), aplicar inmediatamente
     if (name !== 'precioMin' && name !== 'precioMax') {
       onFilterChange(newFilters);
       previousFilters.current = newFilters;
@@ -58,7 +67,7 @@ export default function Filters({ filters, onFilterChange, onClearFilters }) {
 
   return (
     <div className="mb-12 bg-gray-50 p-6 rounded-lg">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
         {/* Filtro por Tipo */}
         <div>
           <label className="block text-sm font-light text-gray-700 mb-2 uppercase tracking-wider">
@@ -114,6 +123,26 @@ export default function Filters({ filters, onFilterChange, onClearFilters }) {
             {MATERIALES_PRODUCTO.map(material => (
               <option key={material.value} value={material.value}>
                 {material.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* NUEVO: Filtro por Conjunto */}
+        <div>
+          <label className="block text-sm font-light text-gray-700 mb-2 uppercase tracking-wider">
+            Conjunto
+          </label>
+          <select
+            name="conjunto"
+            value={localFilters.conjunto}
+            onChange={handleChange}
+            className="w-full px-4 py-2 border border-gray-300 bg-white focus:outline-none focus:border-gray-500 text-sm"
+          >
+            <option value="">Todos</option>
+            {conjuntos.map(conjunto => (
+              <option key={conjunto.id} value={conjunto.id}>
+                {conjunto.nombre}
               </option>
             ))}
           </select>
