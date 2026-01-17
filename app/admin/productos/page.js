@@ -26,6 +26,7 @@ export default function ProductosAdminPage() {
           factor:factores(*)
         `
         )
+        .gte("stock", 1)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -168,7 +169,7 @@ export default function ProductosAdminPage() {
                   return (
                     <tr key={producto.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4">
-                        <div className="relative w-16 h-16 bg-gray-100">
+                        <div className="relative w-32 h-32 bg-gray-100">
                           {producto.imagen_url ? (
                             <Image
                               src={producto.imagen_url}
