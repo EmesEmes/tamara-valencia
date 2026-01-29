@@ -18,7 +18,8 @@ export function middleware(req) {
     '/admin',      // Tu panel de administración
     '/login',      // Tu página de login
     '/api',        // MUY IMPORTANTE: Para que el login y el admin puedan pedir datos
-    '/dashboard',  // (Opcional) Si tu admin está en /dashboard
+    '/dashboard',
+    '/catalogo',  // (Opcional) Si tu admin está en /dashboard
     maintenancePath // La página de aviso
   ];
 
