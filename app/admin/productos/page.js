@@ -63,7 +63,7 @@ export default function ProductosAdminPage() {
           *,
           conjunto:conjuntos(*),
           factor:factores(*)
-        `
+        `,
         )
         .order("created_at", { ascending: false });
 
@@ -90,7 +90,7 @@ export default function ProductosAdminPage() {
       if (filtros.precioMin || filtros.precioMax) {
         productosFiltrados = productosFiltrados.filter((producto) => {
           const precio = redondearPrecio(
-            calcularPrecio(producto.peso, producto.factor)
+            calcularPrecio(producto.peso, producto.factor),
           );
 
           const min = filtros.precioMin ? parseFloat(filtros.precioMin) : 0;
@@ -397,7 +397,7 @@ export default function ProductosAdminPage() {
                   return (
                     <tr key={producto.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4">
-                        <div className="relative w-24 h-24 bg-gray-100">
+                        <div className="relative w-48 h-48 bg-gray-100">
                           {producto.imagen_url ? (
                             <Image
                               src={producto.imagen_url}
@@ -464,8 +464,8 @@ export default function ProductosAdminPage() {
                             producto.stock > 5
                               ? "bg-green-100 text-green-800"
                               : producto.stock > 0
-                              ? "bg-yellow-100 text-yellow-800"
-                              : "bg-red-100 text-red-800"
+                                ? "bg-yellow-100 text-yellow-800"
+                                : "bg-red-100 text-red-800"
                           }`}
                         >
                           {producto.stock}{" "}
