@@ -5,36 +5,38 @@ import Link from "next/link";
 import { formatPrice } from "@/utils/formatters";
 import LoadingSpinner from "@/components/shared/LoadingSpinner";
 import Image from "next/image";
+import { TIPOS_PRODUCTO, CATEGORIAS_PRODUCTO } from "@/lib/constants";
 
 export default function ProductosAdminPage() {
   const [productos, setProductos] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [conjuntos, setConjuntos] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
+
+  // Estados de filtros
+  const [filtros, setFiltros] = useState({
+    tipo: "",
+    categoria: "",
+    conjuntoId: "",
+    precioMin: "",
+    precioMax: "",
+  });
 
   useEffect(() => {
-    fetchProductos();
+    fetchConjuntos();
   }, []);
 
-  const fetchProductos = async () => {
+  const fetchConjuntos = async () => {
     try {
-      setLoading(true);
       const { data, error } = await supabase
-        .from("productos")
-        .select(
-          `
-          *,
-          conjunto:conjuntos(*),
-          factor:factores(*)
-        `
-        )
-        .gte("stock", 1)
-        .order("created_at", { ascending: false });
+        .from("conjuntos")
+        .select("id, nombre")
+        .order("nombre", { ascending: true });
 
       if (error) throw error;
-      setProductos(data);
+      setConjuntos(data || []);
     } catch (error) {
-      console.error("Error al cargar productos:", error);
-    } finally {
-      setLoading(false);
+      console.error("Error al cargar conjuntos:", error);
     }
   };
 
@@ -45,8 +47,87 @@ export default function ProductosAdminPage() {
 
   const redondearPrecio = (precio) => {
     if (!precio || precio === 0) return 0;
-    // Redondear hacia arriba al múltiplo de 5 más cercano
     return Math.ceil(precio / 5) * 5;
+  };
+
+  const fetchProductos = async () => {
+    try {
+      setLoading(true);
+      setHasSearched(true);
+
+      // Construir query base
+      let query = supabase
+        .from("productos")
+        .select(
+          `
+          *,
+          conjunto:conjuntos(*),
+          factor:factores(*)
+        `
+        )
+        .order("created_at", { ascending: false });
+
+      // Aplicar filtros
+      if (filtros.tipo) {
+        query = query.eq("tipo", filtros.tipo);
+      }
+
+      if (filtros.categoria) {
+        query = query.eq("categoria", filtros.categoria);
+      }
+
+      if (filtros.conjuntoId) {
+        query = query.eq("id_conjunto", filtros.conjuntoId);
+      }
+
+      const { data, error } = await query;
+
+      if (error) throw error;
+
+      // Filtrar por precio si se especificó
+      let productosFiltrados = data || [];
+
+      if (filtros.precioMin || filtros.precioMax) {
+        productosFiltrados = productosFiltrados.filter((producto) => {
+          const precio = redondearPrecio(
+            calcularPrecio(producto.peso, producto.factor)
+          );
+
+          const min = filtros.precioMin ? parseFloat(filtros.precioMin) : 0;
+          const max = filtros.precioMax
+            ? parseFloat(filtros.precioMax)
+            : Infinity;
+
+          return precio >= min && precio <= max;
+        });
+      }
+
+      setProductos(productosFiltrados);
+    } catch (error) {
+      console.error("Error al cargar productos:", error);
+      alert("Error al cargar productos");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFiltroChange = (campo, valor) => {
+    setFiltros((prev) => ({
+      ...prev,
+      [campo]: valor,
+    }));
+  };
+
+  const limpiarFiltros = () => {
+    setFiltros({
+      tipo: "",
+      categoria: "",
+      conjuntoId: "",
+      precioMin: "",
+      precioMax: "",
+    });
+    setProductos([]);
+    setHasSearched(false);
   };
 
   const handleDelete = async (id, codigo) => {
@@ -81,10 +162,6 @@ export default function ProductosAdminPage() {
     }
   };
 
-  if (loading) {
-    return <LoadingSpinner />;
-  }
-
   return (
     <div className="mx-auto px-4 py-12">
       <div className="flex justify-between items-center mb-8">
@@ -99,18 +176,169 @@ export default function ProductosAdminPage() {
         </Link>
       </div>
 
-      {productos.length === 0 ? (
-        <div className="bg-white p-12 text-center border border-gray-200">
-          <p className="text-gray-600 mb-4">No hay productos registrados</p>
-          <Link
-            href="/admin/productos/nuevo"
-            className="text-gray-900 underline"
+      {/* Sección de Filtros */}
+      <div className="bg-white border border-gray-200 p-6 mb-6">
+        <h2 className="font-elegant text-2xl font-light text-gray-900 mb-4">
+          Filtros de Búsqueda
+        </h2>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
+          {/* Filtro Tipo */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Tipo
+            </label>
+            <select
+              value={filtros.tipo}
+              onChange={(e) => handleFiltroChange("tipo", e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-900"
+            >
+              <option value="">Todos los tipos</option>
+              {TIPOS_PRODUCTO.map((tipo) => (
+                <option key={tipo.value} value={tipo.value}>
+                  {tipo.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Filtro Categoría */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Categoría
+            </label>
+            <select
+              value={filtros.categoria}
+              onChange={(e) => handleFiltroChange("categoria", e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-900"
+            >
+              <option value="">Todas las categorías</option>
+              {CATEGORIAS_PRODUCTO.map((cat) => (
+                <option key={cat.value} value={cat.value}>
+                  {cat.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Filtro Conjunto */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Conjunto
+            </label>
+            <select
+              value={filtros.conjuntoId}
+              onChange={(e) => handleFiltroChange("conjuntoId", e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-900"
+            >
+              <option value="">Todos los conjuntos</option>
+              {conjuntos.map((conjunto) => (
+                <option key={conjunto.id} value={conjunto.id}>
+                  {conjunto.nombre}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Filtro Precio Mínimo */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Precio Mínimo
+            </label>
+            <input
+              type="number"
+              value={filtros.precioMin}
+              onChange={(e) => handleFiltroChange("precioMin", e.target.value)}
+              placeholder="$0.00"
+              min="0"
+              step="5"
+              className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-900"
+            />
+          </div>
+
+          {/* Filtro Precio Máximo */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Precio Máximo
+            </label>
+            <input
+              type="number"
+              value={filtros.precioMax}
+              onChange={(e) => handleFiltroChange("precioMax", e.target.value)}
+              placeholder="$999.99"
+              min="0"
+              step="5"
+              className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-900"
+            />
+          </div>
+        </div>
+
+        {/* Botones de acción */}
+        <div className="flex gap-4">
+          <button
+            onClick={fetchProductos}
+            disabled={loading}
+            className="px-6 py-3 bg-gray-900 text-white text-sm uppercase tracking-wider hover:bg-gray-800 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
           >
-            Crear primer producto
-          </Link>
+            {loading ? "Buscando..." : "Buscar Productos"}
+          </button>
+          <button
+            onClick={limpiarFiltros}
+            className="px-6 py-3 border border-gray-300 text-gray-700 text-sm uppercase tracking-wider hover:bg-gray-50 transition-colors"
+          >
+            Limpiar Filtros
+          </button>
+        </div>
+      </div>
+
+      {/* Resultados */}
+      {loading ? (
+        <LoadingSpinner />
+      ) : !hasSearched ? (
+        <div className="bg-white p-12 text-center border border-gray-200">
+          <svg
+            className="mx-auto h-12 w-12 text-gray-400 mb-4"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="1"
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+            />
+          </svg>
+          <p className="text-gray-600 text-lg mb-2">
+            Utiliza los filtros para buscar productos
+          </p>
+          <p className="text-gray-500 text-sm">
+            Selecciona uno o más filtros y presiona Buscar Productos
+          </p>
+        </div>
+      ) : productos.length === 0 ? (
+        <div className="bg-white p-12 text-center border border-gray-200">
+          <p className="text-gray-600 mb-4">
+            No se encontraron productos con los filtros seleccionados
+          </p>
+          <button
+            onClick={limpiarFiltros}
+            className="text-gray-900 underline hover:no-underline"
+          >
+            Limpiar filtros
+          </button>
         </div>
       ) : (
         <div className="bg-white border border-gray-200 overflow-hidden">
+          <div className="px-6 py-3 bg-gray-50 border-b border-gray-200">
+            <p className="text-sm text-gray-600">
+              Se encontraron{" "}
+              <span className="font-medium text-gray-900">
+                {productos.length}
+              </span>{" "}
+              {productos.length === 1 ? "producto" : "productos"}
+            </p>
+          </div>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50 border-b border-gray-200">
@@ -169,7 +397,7 @@ export default function ProductosAdminPage() {
                   return (
                     <tr key={producto.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4">
-                        <div className="relative w-32 h-32 bg-gray-100">
+                        <div className="relative w-24 h-24 bg-gray-100">
                           {producto.imagen_url ? (
                             <Image
                               src={producto.imagen_url}
