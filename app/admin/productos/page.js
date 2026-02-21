@@ -353,7 +353,7 @@ export default function ProductosAdminPage() {
                     Nombre
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                    Tipo
+                    Descripción
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                     Material
@@ -381,9 +381,6 @@ export default function ProductosAdminPage() {
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                     Estado
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                    Observaciones
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                     Acciones
@@ -432,7 +429,7 @@ export default function ProductosAdminPage() {
                         {producto.nombre_comercial}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-600">
-                        {producto.tipo}
+                        {producto.descripcion}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-600">
                         {producto.material}
@@ -488,18 +485,6 @@ export default function ProductosAdminPage() {
                         >
                           {producto.activo ? "Activo" : "Inactivo"}
                         </button>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-600 max-w-xs">
-                        {producto.observaciones ? (
-                          <span
-                            className="line-clamp-2"
-                            title={producto.observaciones}
-                          >
-                            {producto.observaciones}
-                          </span>
-                        ) : (
-                          "-"
-                        )}
                       </td>
                       <td className="px-6 py-4 text-sm space-x-2">
                         <Link
