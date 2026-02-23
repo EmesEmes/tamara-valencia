@@ -55,49 +55,42 @@ export default function ProductosAdminPage() {
       setLoading(true);
       setHasSearched(true);
 
-      // Construir query base
-      let query = supabase
-        .from("productos")
-        .select(
-          `
-          *,
-          conjunto:conjuntos(*),
-          factor:factores(*)
-        `,
-        )
-        .order("created_at", { ascending: false });
+      let allData = [];
+      let from = 0;
+      const pageSize = 1000;
 
-      // Aplicar filtros
-      if (filtros.tipo) {
-        query = query.eq("tipo", filtros.tipo);
+      while (true) {
+        let query = supabase
+          .from("productos")
+          .select(`*, conjunto:conjuntos(*), factor:factores(*)`)
+          .order("created_at", { ascending: false })
+          .range(from, from + pageSize - 1);
+
+        if (filtros.tipo) query = query.eq("tipo", filtros.tipo);
+        if (filtros.categoria) query = query.eq("categoria", filtros.categoria);
+        if (filtros.conjuntoId)
+          query = query.eq("id_conjunto", filtros.conjuntoId);
+
+        const { data, error } = await query;
+        if (error) throw error;
+
+        allData = [...allData, ...data];
+        if (data.length < pageSize) break;
+        from += pageSize;
       }
 
-      if (filtros.categoria) {
-        query = query.eq("categoria", filtros.categoria);
-      }
-
-      if (filtros.conjuntoId) {
-        query = query.eq("id_conjunto", filtros.conjuntoId);
-      }
-
-      const { data, error } = await query;
-
-      if (error) throw error;
-
-      // Filtrar por precio si se especificó
-      let productosFiltrados = data || [];
+      // Filtrar por precio sobre TODOS los datos
+      let productosFiltrados = allData;
 
       if (filtros.precioMin || filtros.precioMax) {
-        productosFiltrados = productosFiltrados.filter((producto) => {
+        productosFiltrados = allData.filter((producto) => {
           const precio = redondearPrecio(
             calcularPrecio(producto.peso, producto.factor),
           );
-
           const min = filtros.precioMin ? parseFloat(filtros.precioMin) : 0;
           const max = filtros.precioMax
             ? parseFloat(filtros.precioMax)
             : Infinity;
-
           return precio >= min && precio <= max;
         });
       }
