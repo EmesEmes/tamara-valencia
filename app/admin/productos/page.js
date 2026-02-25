@@ -1,11 +1,15 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabase/client";
 import Link from "next/link";
 import { formatPrice } from "@/utils/formatters";
 import LoadingSpinner from "@/components/shared/LoadingSpinner";
 import Image from "next/image";
-import { TIPOS_PRODUCTO, CATEGORIAS_PRODUCTO } from "@/lib/constants";
+import {
+  TIPOS_PRODUCTO,
+  CATEGORIAS_PRODUCTO,
+  MATERIALES_PRODUCTO,
+} from "@/lib/constants";
 
 export default function ProductosAdminPage() {
   const [productos, setProductos] = useState([]);
@@ -13,10 +17,14 @@ export default function ProductosAdminPage() {
   const [loading, setLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
 
+  // Estado del modal de imagen
+  const [modalImagen, setModalImagen] = useState(null); // { url, nombre }
+
   // Estados de filtros
   const [filtros, setFiltros] = useState({
     tipo: "",
     categoria: "",
+    material: "",
     conjuntoId: "",
     precioMin: "",
     precioMax: "",
@@ -24,6 +32,15 @@ export default function ProductosAdminPage() {
 
   useEffect(() => {
     fetchConjuntos();
+  }, []);
+
+  // Cerrar modal con Escape
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") setModalImagen(null);
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
   const fetchConjuntos = async () => {
@@ -68,6 +85,7 @@ export default function ProductosAdminPage() {
 
         if (filtros.tipo) query = query.eq("tipo", filtros.tipo);
         if (filtros.categoria) query = query.eq("categoria", filtros.categoria);
+        if (filtros.material) query = query.eq("material", filtros.material);
         if (filtros.conjuntoId)
           query = query.eq("id_conjunto", filtros.conjuntoId);
 
@@ -115,6 +133,7 @@ export default function ProductosAdminPage() {
     setFiltros({
       tipo: "",
       categoria: "",
+      material: "",
       conjuntoId: "",
       precioMin: "",
       precioMax: "",
@@ -128,9 +147,7 @@ export default function ProductosAdminPage() {
 
     try {
       const { error } = await supabase.from("productos").delete().eq("id", id);
-
       if (error) throw error;
-
       alert("Producto eliminado exitosamente");
       fetchProductos();
     } catch (error) {
@@ -145,9 +162,7 @@ export default function ProductosAdminPage() {
         .from("productos")
         .update({ activo: !activo })
         .eq("id", id);
-
       if (error) throw error;
-
       fetchProductos();
     } catch (error) {
       console.error("Error al actualizar producto:", error);
@@ -157,6 +172,62 @@ export default function ProductosAdminPage() {
 
   return (
     <div className="mx-auto px-4 py-12">
+      {/* Modal de imagen */}
+      {modalImagen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80"
+          onClick={() => setModalImagen(null)}
+        >
+          <div
+            className="relative max-w-2xl w-full mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Botón cerrar */}
+            <button
+              onClick={() => setModalImagen(null)}
+              className="absolute -top-10 right-0 text-white hover:text-gray-300 transition-colors"
+            >
+              <svg
+                className="w-8 h-8"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="1.5"
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+
+            {/* Imagen */}
+            <div className="relative w-full aspect-square bg-gray-100">
+              <Image
+                src={modalImagen.url}
+                alt={modalImagen.nombre}
+                fill
+                className="object-contain"
+                sizes="(max-width: 672px) 100vw, 672px"
+              />
+            </div>
+
+            {/* Nombre del producto */}
+            <div className="bg-white px-4 py-3 text-center">
+              <p className="text-sm text-gray-700 font-light tracking-wide">
+                {modalImagen.nombre}
+              </p>
+              {modalImagen.codigo && (
+                <p className="text-xs text-gray-400 mt-1">
+                  {modalImagen.codigo}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex justify-between items-center mb-8">
         <h1 className="font-elegant text-4xl font-light text-gray-900">
           Productos
@@ -175,7 +246,7 @@ export default function ProductosAdminPage() {
           Filtros de Búsqueda
         </h2>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 mb-4">
           {/* Filtro Tipo */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -209,6 +280,25 @@ export default function ProductosAdminPage() {
               {CATEGORIAS_PRODUCTO.map((cat) => (
                 <option key={cat.value} value={cat.value}>
                   {cat.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Filtro Material */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Material
+            </label>
+            <select
+              value={filtros.material}
+              onChange={(e) => handleFiltroChange("material", e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-900"
+            >
+              <option value="">Todos los materiales</option>
+              {MATERIALES_PRODUCTO.map((mat) => (
+                <option key={mat.value} value={mat.value}>
+                  {mat.label}
                 </option>
               ))}
             </select>
@@ -389,13 +479,40 @@ export default function ProductosAdminPage() {
                       <td className="px-6 py-4">
                         <div className="relative w-48 h-48 bg-gray-100">
                           {producto.imagen_url ? (
-                            <Image
-                              src={producto.imagen_url}
-                              alt={producto.nombre_comercial}
-                              fill
-                              className="object-cover"
-                              sizes="64px"
-                            />
+                            <>
+                              <Image
+                                src={producto.imagen_url}
+                                alt={producto.nombre_comercial}
+                                fill
+                                className="object-cover"
+                                sizes="192px"
+                              />
+                              {/* Overlay con lupa al hacer hover */}
+                              <button
+                                onClick={() =>
+                                  setModalImagen({
+                                    url: producto.imagen_url,
+                                    nombre: producto.nombre_comercial,
+                                    codigo: producto.codigo,
+                                  })
+                                }
+                                className="absolute inset-0 bg-black/0 hover:bg-black/30 transition-all duration-200 flex items-center justify-center group"
+                              >
+                                <svg
+                                  className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                  stroke="currentColor"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth="1.5"
+                                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"
+                                  />
+                                </svg>
+                              </button>
+                            </>
                           ) : (
                             <div className="w-full h-full flex items-center justify-center">
                               <svg
