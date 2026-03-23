@@ -1,5 +1,7 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase/client";
 import Link from "next/link";
 import { formatPrice } from "@/utils/formatters";
@@ -12,29 +14,48 @@ import {
 } from "@/lib/constants";
 
 export default function ProductosAdminPage() {
-  const [productos, setProductos] = useState([]);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const queryClient = useQueryClient();
+
   const [conjuntos, setConjuntos] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [factores, setFactores] = useState([]);
   const [hasSearched, setHasSearched] = useState(false);
+  const [modalImagen, setModalImagen] = useState(null);
 
-  // Estado del modal de imagen
-  const [modalImagen, setModalImagen] = useState(null); // { url, nombre }
-
-  // Estados de filtros
   const [filtros, setFiltros] = useState({
-    tipo: "",
-    categoria: "",
-    material: "",
-    conjuntoId: "",
-    precioMin: "",
-    precioMax: "",
+    tipo: searchParams.get("tipo") || "",
+    categoria: searchParams.get("categoria") || "",
+    material: searchParams.get("material") || "",
+    factorId: searchParams.get("factorId") || "",
+    conjuntoId: searchParams.get("conjuntoId") || "",
+    precioMin: searchParams.get("precioMin") || "",
+    precioMax: searchParams.get("precioMax") || "",
   });
+
+  const [filtrosActivos, setFiltrosActivos] = useState(() => ({
+    tipo: searchParams.get("tipo") || "",
+    categoria: searchParams.get("categoria") || "",
+    material: searchParams.get("material") || "",
+    factorId: searchParams.get("factorId") || "",
+    conjuntoId: searchParams.get("conjuntoId") || "",
+    precioMin: searchParams.get("precioMin") || "",
+    precioMax: searchParams.get("precioMax") || "",
+  }));
 
   useEffect(() => {
     fetchConjuntos();
+    fetchFactores();
   }, []);
 
-  // Cerrar modal con Escape
+  useEffect(() => {
+    const tieneParametros = Array.from(searchParams.keys()).length > 0;
+    if (tieneParametros) {
+      setHasSearched(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === "Escape") setModalImagen(null);
@@ -43,17 +64,44 @@ export default function ProductosAdminPage() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
+  const actualizarURL = useCallback(
+    (nuevosFiltros) => {
+      const params = new URLSearchParams();
+      Object.entries(nuevosFiltros).forEach(([key, value]) => {
+        if (value) params.set(key, value);
+      });
+      const queryString = params.toString();
+      router.replace(queryString ? `?${queryString}` : "/admin/productos", {
+        scroll: false,
+      });
+    },
+    [router],
+  );
+
   const fetchConjuntos = async () => {
     try {
       const { data, error } = await supabase
         .from("conjuntos")
         .select("id, nombre")
         .order("nombre", { ascending: true });
-
       if (error) throw error;
       setConjuntos(data || []);
     } catch (error) {
       console.error("Error al cargar conjuntos:", error);
+    }
+  };
+
+  const fetchFactores = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("factores")
+        .select("id, nombre")
+        .eq("activo", true)
+        .order("nombre", { ascending: true });
+      if (error) throw error;
+      setFactores(data || []);
+    } catch (error) {
+      console.error("Error al cargar factores:", error);
     }
   };
 
@@ -67,11 +115,9 @@ export default function ProductosAdminPage() {
     return Math.ceil(precio / 5) * 5;
   };
 
-  const fetchProductos = async () => {
-    try {
-      setLoading(true);
-      setHasSearched(true);
-
+  const { data: productos = [], isFetching: loading } = useQuery({
+    queryKey: ["admin-productos", filtrosActivos],
+    queryFn: async () => {
       let allData = [];
       let from = 0;
       const pageSize = 1000;
@@ -83,11 +129,15 @@ export default function ProductosAdminPage() {
           .order("created_at", { ascending: false })
           .range(from, from + pageSize - 1);
 
-        if (filtros.tipo) query = query.eq("tipo", filtros.tipo);
-        if (filtros.categoria) query = query.eq("categoria", filtros.categoria);
-        if (filtros.material) query = query.eq("material", filtros.material);
-        if (filtros.conjuntoId)
-          query = query.eq("id_conjunto", filtros.conjuntoId);
+        if (filtrosActivos.tipo) query = query.eq("tipo", filtrosActivos.tipo);
+        if (filtrosActivos.categoria)
+          query = query.eq("categoria", filtrosActivos.categoria);
+        if (filtrosActivos.material)
+          query = query.eq("material", filtrosActivos.material);
+        if (filtrosActivos.factorId)
+          query = query.eq("id_factor", filtrosActivos.factorId);
+        if (filtrosActivos.conjuntoId)
+          query = query.eq("id_conjunto", filtrosActivos.conjuntoId);
 
         const { data, error } = await query;
         if (error) throw error;
@@ -97,59 +147,62 @@ export default function ProductosAdminPage() {
         from += pageSize;
       }
 
-      // Filtrar por precio sobre TODOS los datos
-      let productosFiltrados = allData;
-
-      if (filtros.precioMin || filtros.precioMax) {
-        productosFiltrados = allData.filter((producto) => {
+      if (filtrosActivos.precioMin || filtrosActivos.precioMax) {
+        return allData.filter((producto) => {
           const precio = redondearPrecio(
             calcularPrecio(producto.peso, producto.factor),
           );
-          const min = filtros.precioMin ? parseFloat(filtros.precioMin) : 0;
-          const max = filtros.precioMax
-            ? parseFloat(filtros.precioMax)
+          const min = filtrosActivos.precioMin
+            ? parseFloat(filtrosActivos.precioMin)
+            : 0;
+          const max = filtrosActivos.precioMax
+            ? parseFloat(filtrosActivos.precioMax)
             : Infinity;
           return precio >= min && precio <= max;
         });
       }
 
-      setProductos(productosFiltrados);
-    } catch (error) {
-      console.error("Error al cargar productos:", error);
-      alert("Error al cargar productos");
-    } finally {
-      setLoading(false);
-    }
-  };
+      return allData;
+    },
+    enabled: hasSearched,
+    staleTime: 5 * 60 * 1000,
+  });
 
   const handleFiltroChange = (campo, valor) => {
-    setFiltros((prev) => ({
-      ...prev,
-      [campo]: valor,
-    }));
+    const nuevosFiltros = { ...filtros, [campo]: valor };
+    setFiltros(nuevosFiltros);
+    actualizarURL(nuevosFiltros);
+  };
+
+  const handleBuscar = () => {
+    actualizarURL(filtros);
+    setHasSearched(true);
+    setFiltrosActivos({ ...filtros });
   };
 
   const limpiarFiltros = () => {
-    setFiltros({
+    const filtrosVacios = {
       tipo: "",
       categoria: "",
       material: "",
+      factorId: "",
       conjuntoId: "",
       precioMin: "",
       precioMax: "",
-    });
-    setProductos([]);
+    };
+    setFiltros(filtrosVacios);
+    setFiltrosActivos(filtrosVacios);
     setHasSearched(false);
+    router.replace("/admin/productos", { scroll: false });
   };
 
   const handleDelete = async (id, codigo) => {
     if (!confirm(`¿Estás seguro de eliminar el producto ${codigo}?`)) return;
-
     try {
       const { error } = await supabase.from("productos").delete().eq("id", id);
       if (error) throw error;
       alert("Producto eliminado exitosamente");
-      fetchProductos();
+      queryClient.invalidateQueries({ queryKey: ["admin-productos"] });
     } catch (error) {
       console.error("Error al eliminar producto:", error);
       alert("Error al eliminar el producto");
@@ -163,7 +216,7 @@ export default function ProductosAdminPage() {
         .update({ activo: !activo })
         .eq("id", id);
       if (error) throw error;
-      fetchProductos();
+      queryClient.invalidateQueries({ queryKey: ["admin-productos"] });
     } catch (error) {
       console.error("Error al actualizar producto:", error);
       alert("Error al actualizar el producto");
@@ -172,7 +225,6 @@ export default function ProductosAdminPage() {
 
   return (
     <div className="mx-auto px-4 py-12">
-      {/* Modal de imagen */}
       {modalImagen && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/80"
@@ -182,7 +234,6 @@ export default function ProductosAdminPage() {
             className="relative max-w-2xl w-full mx-4"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Botón cerrar */}
             <button
               onClick={() => setModalImagen(null)}
               className="absolute -top-10 right-0 text-white hover:text-gray-300 transition-colors"
@@ -201,8 +252,6 @@ export default function ProductosAdminPage() {
                 />
               </svg>
             </button>
-
-            {/* Imagen */}
             <div className="relative w-full aspect-square bg-gray-100">
               <Image
                 src={modalImagen.url}
@@ -212,8 +261,6 @@ export default function ProductosAdminPage() {
                 sizes="(max-width: 672px) 100vw, 672px"
               />
             </div>
-
-            {/* Nombre del producto */}
             <div className="bg-white px-4 py-3 text-center">
               <p className="text-sm text-gray-700 font-light tracking-wide">
                 {modalImagen.nombre}
@@ -240,14 +287,12 @@ export default function ProductosAdminPage() {
         </Link>
       </div>
 
-      {/* Sección de Filtros */}
       <div className="bg-white border border-gray-200 p-6 mb-6">
         <h2 className="font-elegant text-2xl font-light text-gray-900 mb-4">
           Filtros de Búsqueda
         </h2>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 mb-4">
-          {/* Filtro Tipo */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Tipo
@@ -266,7 +311,6 @@ export default function ProductosAdminPage() {
             </select>
           </div>
 
-          {/* Filtro Categoría */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Categoría
@@ -285,7 +329,6 @@ export default function ProductosAdminPage() {
             </select>
           </div>
 
-          {/* Filtro Material */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Material
@@ -304,7 +347,24 @@ export default function ProductosAdminPage() {
             </select>
           </div>
 
-          {/* Filtro Conjunto */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Factor
+            </label>
+            <select
+              value={filtros.factorId}
+              onChange={(e) => handleFiltroChange("factorId", e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-900"
+            >
+              <option value="">Todos los factores</option>
+              {factores.map((factor) => (
+                <option key={factor.id} value={factor.id}>
+                  {factor.nombre}
+                </option>
+              ))}
+            </select>
+          </div>
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Conjunto
@@ -323,7 +383,6 @@ export default function ProductosAdminPage() {
             </select>
           </div>
 
-          {/* Filtro Precio Mínimo */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Precio Mínimo
@@ -339,7 +398,6 @@ export default function ProductosAdminPage() {
             />
           </div>
 
-          {/* Filtro Precio Máximo */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Precio Máximo
@@ -356,10 +414,9 @@ export default function ProductosAdminPage() {
           </div>
         </div>
 
-        {/* Botones de acción */}
         <div className="flex gap-4">
           <button
-            onClick={fetchProductos}
+            onClick={handleBuscar}
             disabled={loading}
             className="px-6 py-3 bg-gray-900 text-white text-sm uppercase tracking-wider hover:bg-gray-800 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
           >
@@ -374,7 +431,6 @@ export default function ProductosAdminPage() {
         </div>
       </div>
 
-      {/* Resultados */}
       {loading ? (
         <LoadingSpinner />
       ) : !hasSearched ? (
@@ -473,7 +529,6 @@ export default function ProductosAdminPage() {
               <tbody className="divide-y divide-gray-200">
                 {productos.map((producto) => {
                   const precio = calcularPrecio(producto.peso, producto.factor);
-
                   return (
                     <tr key={producto.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4">
@@ -487,7 +542,6 @@ export default function ProductosAdminPage() {
                                 className="object-cover"
                                 sizes="192px"
                               />
-                              {/* Overlay con lupa al hacer hover */}
                               <button
                                 onClick={() =>
                                   setModalImagen({
@@ -526,7 +580,7 @@ export default function ProductosAdminPage() {
                                   strokeLinejoin="round"
                                   strokeWidth="1"
                                   d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                                ></path>
+                                />
                               </svg>
                             </div>
                           )}
