@@ -24,14 +24,15 @@ export default function ProductCard({ producto }) {
 
   const precioFinal = redondearPrecio(calcularPrecio(producto));
   const enCarrito = isInCart(producto.id);
-  const puedeAgregar = producto.stock > 0 && canAddMore(producto.id, producto.stock);
+  const puedeAgregar =
+    producto.stock > 0 && canAddMore(producto.id, producto.stock);
 
   const handleAddToCart = (e) => {
     e.preventDefault(); // Prevenir navegación del Link
     e.stopPropagation();
-    
+
     const added = addItem(producto);
-    
+
     if (added) {
       setAgregado(true);
       setTimeout(() => setAgregado(false), 1500);
@@ -69,25 +70,45 @@ export default function ProductCard({ producto }) {
             </svg>
           </div>
         )}
-        
+
         {/* Botón flotante en la imagen */}
         {puedeAgregar && (
           <button
             onClick={handleAddToCart}
             className={`absolute bottom-4 right-4 p-3 rounded-full shadow-lg transition-all duration-300 ${
               agregado
-                ? 'bg-green-600 scale-110'
-                : 'bg-white hover:bg-gray-900 hover:text-white'
+                ? "bg-green-600 scale-110"
+                : "bg-white hover:bg-gray-900 hover:text-white"
             }`}
             title="Agregar al carrito"
           >
             {agregado ? (
-              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+              <svg
+                className="w-5 h-5 text-white"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M5 13l4 4L19 7"
+                />
               </svg>
             ) : (
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
+                />
               </svg>
             )}
           </button>
@@ -107,7 +128,7 @@ export default function ProductCard({ producto }) {
           </p>
         )}
         <p className="font-light text-xl text-gray-900">
-          {precioFinal > 0 ? formatPrice(precioFinal) : 'Precio no disponible'}
+          {precioFinal > 0 ? formatPrice(precioFinal) : "Precio no disponible"}
         </p>
         {producto.stock > 3 && (
           <p className="text-xs mt-1 text-green-600">
@@ -120,17 +141,13 @@ export default function ProductCard({ producto }) {
           </p>
         )}
         {producto.stock === 1 && (
-          <p className="text-xs text-red-500 mt-1">
-            ¡Última unidad!
-          </p>
+          <p className="text-xs text-red-500 mt-1">¡Última unidad!</p>
         )}
         {producto.stock === 0 && (
           <p className="text-xs text-red-600 mt-1">Agotado</p>
         )}
         {enCarrito && puedeAgregar && (
-          <p className="text-xs text-gray-500 mt-1">
-            ✓ En carrito
-          </p>
+          <p className="text-xs text-gray-500 mt-1">✓ En carrito</p>
         )}
         <p className="text-sm text-gray-500 uppercase tracking-wider mt-2">
           Cod: {producto.codigo}
