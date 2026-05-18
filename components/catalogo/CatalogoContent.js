@@ -1,75 +1,76 @@
-'use client';
-import { useMemo, useCallback } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { useProductosAgrupados } from '@/lib/hooks/useProductos';
-import ProductGrid from './ProductGrid';
-import Filters from './Filters';
-import Pagination from './Pagination';
-import LoadingSpinner from '@/components/shared/LoadingSpinner';
+"use client";
+import { useMemo, useCallback } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useProductosAgrupados } from "@/lib/hooks/useProductos";
+import ProductGrid from "./ProductGrid";
+import Filters from "./Filters";
+import Pagination from "./Pagination";
+import LoadingSpinner from "@/components/shared/LoadingSpinner";
 
 const CONJUNTOS_POR_PAGINA = 6;
 
 export default function CatalogoContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  
+
   // Usar useMemo para los filtros
-  const filters = useMemo(() => ({
-    tipo: searchParams.get('tipo') || '',
-    categoria: searchParams.get('categoria') || '',
-    material: searchParams.get('material') || '',
-    conjunto: searchParams.get('conjunto') || '',
-    precioMin: searchParams.get('precioMin') || '',
-    precioMax: searchParams.get('precioMax') || ''
-  }), [searchParams]);
+  const filters = useMemo(
+    () => ({
+      tipo: searchParams.get("tipo") || "",
+      categoria: searchParams.get("categoria") || "",
+      material: searchParams.get("material") || "",
+      conjunto: searchParams.get("conjunto") || "",
+      precioMin: searchParams.get("precioMin") || "",
+      precioMax: searchParams.get("precioMax") || "",
+      codigo: searchParams.get("codigo") || "",
+    }),
+    [searchParams],
+  );
 
-  const currentPage = parseInt(searchParams.get('page')) || 1;
-
-  // Debug logs
-  console.log('RENDER - Página actual:', currentPage);
-  console.log('RENDER - URL completa:', searchParams.toString());
+  const currentPage = parseInt(searchParams.get("page")) || 1;
 
   // Usar React Query para obtener productos
   const { data, isLoading, error } = useProductosAgrupados(filters);
 
-  const handleFilterChange = useCallback((newFilters) => {
-    const params = new URLSearchParams();
-    
-    if (newFilters.tipo) params.set('tipo', newFilters.tipo);
-    if (newFilters.categoria) params.set('categoria', newFilters.categoria);
-    if (newFilters.material) params.set('material', newFilters.material);
-    if (newFilters.conjunto) params.set('conjunto', newFilters.conjunto);
-    if (newFilters.precioMin) params.set('precioMin', newFilters.precioMin);
-    if (newFilters.precioMax) params.set('precioMax', newFilters.precioMax);
-    // Reset a página 1 al cambiar filtros
-    params.set('page', '1');
+  const handleFilterChange = useCallback(
+    (newFilters) => {
+      const params = new URLSearchParams();
 
-    const queryString = params.toString();
-    router.push(`/catalogo?${queryString}`, { scroll: false });
-  }, [router]);
+      if (newFilters.tipo) params.set("tipo", newFilters.tipo);
+      if (newFilters.categoria) params.set("categoria", newFilters.categoria);
+      if (newFilters.material) params.set("material", newFilters.material);
+      if (newFilters.conjunto) params.set("conjunto", newFilters.conjunto);
+      if (newFilters.precioMin) params.set("precioMin", newFilters.precioMin);
+      if (newFilters.precioMax) params.set("precioMax", newFilters.precioMax);
+      if (newFilters.codigo) params.set("codigo", newFilters.codigo);
+
+      // Reset a página 1 al cambiar filtros
+      params.set("page", "1");
+
+      const queryString = params.toString();
+      router.push(`/catalogo?${queryString}`, { scroll: false });
+    },
+    [router],
+  );
 
   const handleClearFilters = useCallback(() => {
-    router.push('/catalogo', { scroll: false });
+    router.push("/catalogo", { scroll: false });
   }, [router]);
 
-  const handlePageChange = useCallback((newPage) => {
-    console.log('=== INICIANDO CAMBIO DE PÁGINA ===');
-    console.log('Nueva página:', newPage);
-    console.log('searchParams actual:', searchParams.toString());
-    
-    const params = new URLSearchParams(searchParams);
-    console.log('Params después de copiar:', params.toString());
-    
-    params.set('page', newPage.toString());
-    console.log('Params después de setear page:', params.toString());
-    
-    const finalUrl = `/catalogo?${params.toString()}`;
-    console.log('URL final:', finalUrl);
-    
-    router.push(finalUrl);
-    
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [router, searchParams]);
+  const handlePageChange = useCallback(
+    (newPage) => {
+      const params = new URLSearchParams(searchParams);
+
+      params.set("page", newPage.toString());
+
+      const finalUrl = `/catalogo?${params.toString()}`;
+
+      router.push(finalUrl);
+
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    },
+    [router, searchParams],
+  );
 
   if (isLoading) {
     return <LoadingSpinner />;
@@ -78,7 +79,9 @@ export default function CatalogoContent() {
   if (error) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-20 text-center">
-        <p className="text-red-600">Error al cargar productos. Por favor, intenta de nuevo.</p>
+        <p className="text-red-600">
+          Error al cargar productos. Por favor, intenta de nuevo.
+        </p>
       </div>
     );
   }
@@ -100,14 +103,14 @@ export default function CatalogoContent() {
         <div className="w-24 h-px bg-gray-300 mx-auto"></div>
       </div>
 
-      <Filters 
-        filters={filters} 
+      <Filters
+        filters={filters}
         onFilterChange={handleFilterChange}
         onClearFilters={handleClearFilters}
       />
 
-      <ProductGrid 
-        conjuntos={conjuntosMostrados} 
+      <ProductGrid
+        conjuntos={conjuntosMostrados}
         productosSueltos={productosSueltos}
       />
 
@@ -124,7 +127,8 @@ export default function CatalogoContent() {
       {conjuntosMostrados.length === 0 && productosSueltos.length > 0 && (
         <div className="text-center mt-12">
           <p className="text-gray-500 text-sm font-light">
-            No hay más conjuntos. Todas las piezas individuales se muestran arriba.
+            No hay más conjuntos. Todas las piezas individuales se muestran
+            arriba.
           </p>
         </div>
       )}

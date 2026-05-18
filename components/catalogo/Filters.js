@@ -1,74 +1,81 @@
-'use client';
-import { useState, useEffect, useRef } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { TIPOS_PRODUCTO, CATEGORIAS_PRODUCTO, MATERIALES_PRODUCTO } from '@/lib/constants';
-import { getConjuntos } from '@/lib/supabase/client';
+"use client";
+import { useState, useEffect, useRef } from "react";
+import { useQuery } from "@tanstack/react-query";
+import {
+  TIPOS_PRODUCTO,
+  CATEGORIAS_PRODUCTO,
+  MATERIALES_PRODUCTO,
+} from "@/lib/constants";
+import { getConjuntos } from "@/lib/supabase/client";
 
 export default function Filters({ filters, onFilterChange, onClearFilters }) {
-  const [localFilters, setLocalFilters] = useState(filters);
+  const [localFilters, setLocalFilters] = useState({
+    ...filters,
+    codigo: filters.codigo || "",
+  });
   const isFirstRender = useRef(true);
   const previousFilters = useRef(filters);
 
-  // Cargar conjuntos
   const { data: conjuntos = [] } = useQuery({
-    queryKey: ['conjuntos'],
+    queryKey: ["conjuntos"],
     queryFn: getConjuntos,
-    staleTime: 10 * 60 * 1000, // 10 minutos
+    staleTime: 10 * 60 * 1000,
   });
 
-  // Debounce para precios
+  // Debounce para precios y código
   useEffect(() => {
-    // Evitar ejecutar en el primer render
     if (isFirstRender.current) {
       isFirstRender.current = false;
       previousFilters.current = localFilters;
       return;
     }
 
-    // Solo ejecutar si los filtros realmente cambiaron
-    const filtersChanged = 
+    const filtersChanged =
       localFilters.precioMin !== previousFilters.current.precioMin ||
-      localFilters.precioMax !== previousFilters.current.precioMax;
+      localFilters.precioMax !== previousFilters.current.precioMax ||
+      localFilters.codigo !== previousFilters.current.codigo;
 
-    if (!filtersChanged) {
-      return;
-    }
+    if (!filtersChanged) return;
 
     const timeoutId = setTimeout(() => {
       onFilterChange(localFilters);
       previousFilters.current = localFilters;
-    }, 800);
+    }, 1200);
 
     return () => clearTimeout(timeoutId);
-  }, [localFilters.precioMin, localFilters.precioMax, localFilters, onFilterChange]);
+  }, [
+    localFilters.precioMin,
+    localFilters.precioMax,
+    localFilters.codigo,
+    localFilters,
+    onFilterChange,
+  ]);
 
-  // Actualizar filtros locales cuando cambien los externos (ej: al limpiar)
   useEffect(() => {
-    setLocalFilters(filters);
+    setLocalFilters({ ...filters, codigo: filters.codigo || "" });
     previousFilters.current = filters;
   }, [filters]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    const newFilters = {
-      ...localFilters,
-      [name]: value
-    };
+    const newFilters = { ...localFilters, [name]: value };
     setLocalFilters(newFilters);
 
-    // Para los selects (tipo, categoria, material, conjunto), aplicar inmediatamente
-    if (name !== 'precioMin' && name !== 'precioMax') {
+    // Selects aplican inmediatamente, precios y código tienen debounce
+    if (name !== "precioMin" && name !== "precioMax" && name !== "codigo") {
       onFilterChange(newFilters);
       previousFilters.current = newFilters;
     }
   };
 
-  const hasActiveFilters = Object.values(localFilters).some(value => value !== '');
+  const hasActiveFilters = Object.values(localFilters).some(
+    (value) => value !== "",
+  );
 
   return (
     <div className="mb-12 bg-gray-50 p-6 rounded-lg">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
-        {/* Filtro por Tipo */}
+      {/* Fila 1: Selects */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
         <div>
           <label className="block text-sm font-light text-gray-700 mb-2 uppercase tracking-wider">
             Tipo
@@ -80,7 +87,7 @@ export default function Filters({ filters, onFilterChange, onClearFilters }) {
             className="w-full px-4 py-2 border border-gray-300 bg-white focus:outline-none focus:border-gray-500 text-sm"
           >
             <option value="">Todos</option>
-            {TIPOS_PRODUCTO.map(tipo => (
+            {TIPOS_PRODUCTO.map((tipo) => (
               <option key={tipo.value} value={tipo.value}>
                 {tipo.label}
               </option>
@@ -88,7 +95,6 @@ export default function Filters({ filters, onFilterChange, onClearFilters }) {
           </select>
         </div>
 
-        {/* Filtro por Categoría */}
         <div>
           <label className="block text-sm font-light text-gray-700 mb-2 uppercase tracking-wider">
             Categoría
@@ -100,7 +106,7 @@ export default function Filters({ filters, onFilterChange, onClearFilters }) {
             className="w-full px-4 py-2 border border-gray-300 bg-white focus:outline-none focus:border-gray-500 text-sm"
           >
             <option value="">Todas</option>
-            {CATEGORIAS_PRODUCTO.map(categoria => (
+            {CATEGORIAS_PRODUCTO.map((categoria) => (
               <option key={categoria.value} value={categoria.value}>
                 {categoria.label}
               </option>
@@ -108,7 +114,6 @@ export default function Filters({ filters, onFilterChange, onClearFilters }) {
           </select>
         </div>
 
-        {/* Filtro por Material */}
         <div>
           <label className="block text-sm font-light text-gray-700 mb-2 uppercase tracking-wider">
             Material
@@ -120,7 +125,7 @@ export default function Filters({ filters, onFilterChange, onClearFilters }) {
             className="w-full px-4 py-2 border border-gray-300 bg-white focus:outline-none focus:border-gray-500 text-sm"
           >
             <option value="">Todos</option>
-            {MATERIALES_PRODUCTO.map(material => (
+            {MATERIALES_PRODUCTO.map((material) => (
               <option key={material.value} value={material.value}>
                 {material.label}
               </option>
@@ -128,7 +133,6 @@ export default function Filters({ filters, onFilterChange, onClearFilters }) {
           </select>
         </div>
 
-        {/* NUEVO: Filtro por Conjunto */}
         <div>
           <label className="block text-sm font-light text-gray-700 mb-2 uppercase tracking-wider">
             Conjunto
@@ -140,15 +144,31 @@ export default function Filters({ filters, onFilterChange, onClearFilters }) {
             className="w-full px-4 py-2 border border-gray-300 bg-white focus:outline-none focus:border-gray-500 text-sm"
           >
             <option value="">Todos</option>
-            {conjuntos.map(conjunto => (
+            {conjuntos.map((conjunto) => (
               <option key={conjunto.id} value={conjunto.id}>
                 {conjunto.nombre}
               </option>
             ))}
           </select>
         </div>
+      </div>
 
-        {/* Filtro Precio Mínimo */}
+      {/* Fila 2: Código y Precios */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+          <label className="block text-sm font-light text-gray-700 mb-2 uppercase tracking-wider">
+            Buscar por Código
+          </label>
+          <input
+            type="text"
+            name="codigo"
+            value={localFilters.codigo}
+            onChange={handleChange}
+            placeholder="Ej: OANP, MA..."
+            className="w-full px-4 py-2 border border-gray-300 bg-white focus:outline-none focus:border-gray-500 text-sm"
+          />
+        </div>
+
         <div>
           <label className="block text-sm font-light text-gray-700 mb-2 uppercase tracking-wider">
             Precio Mín.
@@ -164,7 +184,6 @@ export default function Filters({ filters, onFilterChange, onClearFilters }) {
           />
         </div>
 
-        {/* Filtro Precio Máximo */}
         <div>
           <label className="block text-sm font-light text-gray-700 mb-2 uppercase tracking-wider">
             Precio Máx.
@@ -181,7 +200,6 @@ export default function Filters({ filters, onFilterChange, onClearFilters }) {
         </div>
       </div>
 
-      {/* Botón para limpiar filtros */}
       {hasActiveFilters && (
         <div className="mt-4 text-center">
           <button
