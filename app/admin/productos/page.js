@@ -23,6 +23,13 @@ export default function ProductosAdminPage() {
   const [hasSearched, setHasSearched] = useState(false);
   const [modalImagen, setModalImagen] = useState(null);
 
+  // Parsear sinImagen desde URL: 'true' → true, 'false' → false, null → ''
+  const parseSinImagen = (val) => {
+    if (val === "true") return true;
+    if (val === "false") return false;
+    return "";
+  };
+
   const [filtros, setFiltros] = useState({
     tipo: searchParams.get("tipo") || "",
     categoria: searchParams.get("categoria") || "",
@@ -32,7 +39,7 @@ export default function ProductosAdminPage() {
     precioMin: searchParams.get("precioMin") || "",
     precioMax: searchParams.get("precioMax") || "",
     codigo: searchParams.get("codigo") || "",
-    sinImagen: searchParams.get("sinImagen") === "true" || false,
+    sinImagen: parseSinImagen(searchParams.get("sinImagen")),
   });
 
   const [filtrosActivos, setFiltrosActivos] = useState(() => ({
@@ -44,7 +51,7 @@ export default function ProductosAdminPage() {
     precioMin: searchParams.get("precioMin") || "",
     precioMax: searchParams.get("precioMax") || "",
     codigo: searchParams.get("codigo") || "",
-    sinImagen: searchParams.get("sinImagen") === "true" || false,
+    sinImagen: parseSinImagen(searchParams.get("sinImagen")),
   }));
 
   useEffect(() => {
@@ -72,7 +79,9 @@ export default function ProductosAdminPage() {
     (nuevosFiltros) => {
       const params = new URLSearchParams();
       Object.entries(nuevosFiltros).forEach(([key, value]) => {
-        if (value) params.set(key, value);
+        if (value !== "" && value !== null && value !== undefined) {
+          params.set(key, String(value));
+        }
       });
       const queryString = params.toString();
       router.replace(queryString ? `?${queryString}` : "/admin/productos", {
@@ -142,11 +151,13 @@ export default function ProductosAdminPage() {
           query = query.eq("id_factor", filtrosActivos.factorId);
         if (filtrosActivos.conjuntoId)
           query = query.eq("id_conjunto", filtrosActivos.conjuntoId);
-        // Búsqueda por código con LIKE — busca coincidencia parcial
         if (filtrosActivos.codigo)
           query = query.ilike("codigo", `%${filtrosActivos.codigo}%`);
-        // Filtro sin imagen directo en Supabase
-        if (filtrosActivos.sinImagen) query = query.is("imagen_url", null);
+        // Filtro de imagen
+        if (filtrosActivos.sinImagen === true)
+          query = query.is("imagen_url", null);
+        if (filtrosActivos.sinImagen === false)
+          query = query.not("imagen_url", "is", null);
 
         const { data, error } = await query;
         if (error) throw error;
@@ -156,7 +167,6 @@ export default function ProductosAdminPage() {
         from += pageSize;
       }
 
-      // Filtrar por precio sobre todos los datos
       if (filtrosActivos.precioMin || filtrosActivos.precioMax) {
         return allData.filter((producto) => {
           const precio = redondearPrecio(
@@ -200,7 +210,7 @@ export default function ProductosAdminPage() {
       precioMin: "",
       precioMax: "",
       codigo: "",
-      sinImagen: false,
+      sinImagen: "",
     };
     setFiltros(filtrosVacios);
     setFiltrosActivos(filtrosVacios);
@@ -305,7 +315,6 @@ export default function ProductosAdminPage() {
         </h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-          {/* Búsqueda por código */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Código
@@ -441,25 +450,34 @@ export default function ProductosAdminPage() {
           </div>
         </div>
 
-        {/* Filtro sin imagen — checkbox separado */}
-        <div className="mb-4">
-          <label className="flex items-center gap-3 cursor-pointer w-fit">
+        {/* Checkboxes de imagen lado a lado */}
+        <div className="mb-4 flex items-center gap-6">
+          <label className="flex items-center gap-3 cursor-pointer">
             <input
               type="checkbox"
-              checked={filtros.sinImagen}
+              checked={filtros.sinImagen === true}
               onChange={(e) =>
-                handleFiltroChange("sinImagen", e.target.checked)
+                handleFiltroChange("sinImagen", e.target.checked ? true : "")
               }
               className="w-4 h-4 border-gray-300 text-gray-900 focus:ring-gray-900 cursor-pointer"
             />
             <span className="text-sm font-medium text-gray-700">
-              Solo productos sin imagen
+              Solo sin imagen
             </span>
-            {filtros.sinImagen && (
-              <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded">
-                Activo
-              </span>
-            )}
+          </label>
+
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={filtros.sinImagen === false}
+              onChange={(e) =>
+                handleFiltroChange("sinImagen", e.target.checked ? false : "")
+              }
+              className="w-4 h-4 border-gray-300 text-gray-900 focus:ring-gray-900 cursor-pointer"
+            />
+            <span className="text-sm font-medium text-gray-700">
+              Solo con imagen
+            </span>
           </label>
         </div>
 
