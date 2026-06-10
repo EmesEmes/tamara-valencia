@@ -10,21 +10,12 @@ import Link from "next/link";
 import { formatPrice } from "@/utils/formatters";
 import LoadingSpinner from "@/components/shared/LoadingSpinner";
 import ProductCard from "./ProductCard";
-import { useCartStore } from "@/lib/cartStore";
 
 export default function ProductDetail({ productId }) {
   const router = useRouter();
   const [producto, setProducto] = useState(null);
   const [productosConjunto, setProductosConjunto] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [agregado, setAgregado] = useState(false);
-  const [sinStock, setSinStock] = useState(false);
-
-  // Cart store
-  const addItem = useCartStore((state) => state.addItem);
-  const isInCart = useCartStore((state) => state.isInCart);
-  const getItemQuantity = useCartStore((state) => state.getItemQuantity);
-  const canAddMore = useCartStore((state) => state.canAddMore);
 
   const calcularPrecio = (prod) => {
     if (!prod.peso || !prod.factor || !prod.factor.valor) return 0;
@@ -43,12 +34,10 @@ export default function ProductDetail({ productId }) {
         const productoData = await getProductoById(productId);
         setProducto(productoData);
 
-        // Si el producto pertenece a un conjunto, obtener los demás productos
         if (productoData.id_conjunto) {
           const otrosProductos = await getProductosPorConjunto(
-            productoData.id_conjunto
+            productoData.id_conjunto,
           );
-          // Filtrar el producto actual para no mostrarlo dos veces
           const filtrados = otrosProductos.filter((p) => p.id !== productId);
           setProductosConjunto(filtrados);
         }
@@ -61,28 +50,6 @@ export default function ProductDetail({ productId }) {
 
     fetchData();
   }, [productId]);
-
-  const handleAddToCart = () => {
-    if (producto) {
-      const added = addItem(producto);
-      
-      if (added) {
-        setAgregado(true);
-        setSinStock(false);
-        
-        // Resetear el mensaje después de 2 segundos
-        setTimeout(() => {
-          setAgregado(false);
-        }, 2000);
-      } else {
-        // No se pudo agregar porque no hay más stock
-        setSinStock(true);
-        setTimeout(() => {
-          setSinStock(false);
-        }, 3000);
-      }
-    }
-  };
 
   if (loading) {
     return <LoadingSpinner />;
@@ -106,13 +73,8 @@ export default function ProductDetail({ productId }) {
     );
   }
 
-  const enCarrito = isInCart(producto.id);
-  const cantidadEnCarrito = getItemQuantity(producto.id);
-  const puedeAgregarMas = canAddMore(producto.id, producto.stock);
-
   return (
     <div className="max-w-7xl mx-auto px-4 py-12">
-      {/* Breadcrumb */}
       <div className="mb-8">
         <button
           onClick={() => window.history.back()}
@@ -148,7 +110,7 @@ export default function ProductDetail({ productId }) {
                   strokeLinejoin="round"
                   strokeWidth="0.5"
                   d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                ></path>
+                />
               </svg>
             </div>
           )}
@@ -162,12 +124,11 @@ export default function ProductDetail({ productId }) {
             </p>
           )}
 
-          {/* Tipo como título principal */}
           <h1 className="font-elegant text-4xl md:text-5xl font-light text-gray-900">
             {producto.nombre_comercial}
           </h1>
 
-          <div className="w-16 h-px bg-[#FFF2E0]"></div>
+          <div className="w-16 h-px bg-[#FFF2E0]" />
 
           <p className="text-3xl font-light text-gray-900">
             {formatPrice(redondearPrecio(calcularPrecio(producto)))}
@@ -202,8 +163,8 @@ export default function ProductDetail({ productId }) {
                   producto.stock > 5
                     ? "text-green-600"
                     : producto.stock > 0
-                    ? "text-yellow-600"
-                    : "text-red-600"
+                      ? "text-yellow-600"
+                      : "text-red-600"
                 }
               >
                 {producto.stock > 0 ? `${producto.stock} en stock` : "Agotado"}
@@ -220,47 +181,14 @@ export default function ProductDetail({ productId }) {
             </div>
           )}
 
-          {/* Botones de acción */}
-          <div className="pt-6 space-y-4">
-            {/* Mensaje de stock insuficiente */}
-            {sinStock && (
-              <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 text-sm">
-                Ya tienes todo el stock disponible en tu carrito
-              </div>
-            )}
-
-            {/* Botón Agregar al Carrito */}
-            <button
-              onClick={handleAddToCart}
-              disabled={producto.stock === 0 || !puedeAgregarMas}
-              className={`w-full md:w-auto px-12 py-4 text-center font-light tracking-widest uppercase text-sm transition-all duration-300 ${
-                producto.stock === 0
-                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  : !puedeAgregarMas
-                  ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
-                  : agregado
-                  ? 'bg-green-600 text-white'
-                  : 'bg-[#FFF2E0] text-gray-900 hover:bg-[#ffe8c5]'
-              }`}
-            >
-              {producto.stock === 0 
-                ? 'Sin stock' 
-                : agregado 
-                ? '✓ Agregado al carrito' 
-                : !puedeAgregarMas && enCarrito
-                ? `Stock máximo en carrito (${cantidadEnCarrito})`
-                : enCarrito 
-                ? `Agregar más (${cantidadEnCarrito} en carrito)` 
-                : 'Agregar al carrito'}
-            </button>
-
-            {/* Botón WhatsApp */}
-            <a 
+          {/* Botón WhatsApp */}
+          <div className="pt-6">
+            <a
               href={`https://wa.me/593998444531?text=${encodeURIComponent(
                 `Hola! Me interesa esta joya:\n\n` +
-                `*${producto.nombre_comercial}*\n` +
-                `Código: ${producto.codigo}\n` +
-                `Ver más: ${typeof window !== 'undefined' ? window.location.origin : ''}/catalogo/${productId}`
+                  `*${producto.nombre_comercial}*\n` +
+                  `Código: ${producto.codigo}\n` +
+                  `Ver más: ${typeof window !== "undefined" ? window.location.origin : ""}/catalogo/${productId}`,
               )}`}
               target="_blank"
               rel="noopener noreferrer"
@@ -279,7 +207,7 @@ export default function ProductDetail({ productId }) {
             <h2 className="font-elegant text-3xl font-light text-gray-900 mb-2">
               Más piezas de {producto.conjunto?.nombre}
             </h2>
-            <div className="w-16 h-px bg-[#FFF2E0] mx-auto mt-4"></div>
+            <div className="w-16 h-px bg-[#FFF2E0] mx-auto mt-4" />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">

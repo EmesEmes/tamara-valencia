@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from "next/link";
 
 export default function Footer() {
   return (
@@ -7,7 +7,9 @@ export default function Footer() {
         <div className="grid md:grid-cols-3 gap-8 mb-8">
           {/* Logo y descripción */}
           <div>
-            <h3 className="font-elegant text-2xl mb-4">Tamara Valencia Joyas</h3>
+            <h3 className="font-elegant text-2xl mb-4">
+              Tamara Valencia Joyas
+            </h3>
             <p className="text-gray-400 text-sm font-light">
               Elegancia atemporal en cada pieza de joyería.
             </p>
@@ -18,22 +20,34 @@ export default function Footer() {
             <h4 className="text-sm tracking-widest uppercase mb-4">Enlaces</h4>
             <ul className="space-y-2">
               <li>
-                <Link href="/" className="text-gray-400 hover:text-white text-sm transition-colors">
+                <Link
+                  href="/"
+                  className="text-gray-400 hover:text-white text-sm transition-colors"
+                >
                   Inicio
                 </Link>
               </li>
               <li>
-                <Link href="/catalogo" className="text-gray-400 hover:text-white text-sm transition-colors">
+                <Link
+                  href="/catalogo"
+                  className="text-gray-400 hover:text-white text-sm transition-colors"
+                >
                   Catálogo
                 </Link>
               </li>
               <li>
-                <a href="#about" className="text-gray-400 hover:text-white text-sm transition-colors">
+                <a
+                  href="#about"
+                  className="text-gray-400 hover:text-white text-sm transition-colors"
+                >
                   Nosotros
                 </a>
               </li>
               <li>
-                <a href="#contact" className="text-gray-400 hover:text-white text-sm transition-colors">
+                <a
+                  href="#contact"
+                  className="text-gray-400 hover:text-white text-sm transition-colors"
+                >
                   Contacto
                 </a>
               </li>
@@ -50,8 +64,22 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="border-t border-gray-800 pt-8 text-center text-sm text-gray-400">
-          <p>&copy; {new Date().getFullYear()} Tamara Valencia. Todos los derechos reservados.</p>
+        <div className="border-t border-gray-800 pt-8 flex flex-col md:flex-row items-center justify-between gap-2 text-sm text-gray-400">
+          <p>
+            &copy; {new Date().getFullYear()} Tamara Valencia. Todos los
+            derechos reservados.
+          </p>
+          <p>
+            Desarrollado por{" "}
+            <a
+              href="https://www.linkedin.com/in/emilio-del-hierro/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-gray-300 hover:text-white transition-colors"
+            >
+              Emilio del Hierro
+            </a>
+          </p>
         </div>
       </div>
     </footer>

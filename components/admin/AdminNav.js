@@ -1,8 +1,8 @@
-'use client';
-import Link from 'next/link';
-import { useRouter, usePathname } from 'next/navigation';
-import { supabase } from '@/lib/supabase/client';
-import { useState } from 'react';
+"use client";
+import Link from "next/link";
+import { useRouter, usePathname } from "next/navigation";
+import { supabase } from "@/lib/supabase/client";
+import { useState } from "react";
 
 export default function AdminNav() {
   const router = useRouter();
@@ -11,10 +11,22 @@ export default function AdminNav() {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    router.push('/login');
+    router.push("/login");
   };
 
-  const isActive = (path) => pathname === path || pathname.startsWith(path + '/');
+  const isActive = (path) =>
+    pathname === path || pathname.startsWith(path + "/");
+
+  const navLinks = [
+    { href: "/admin", label: "Dashboard", exact: true },
+    { href: "/admin/productos", label: "Productos" },
+    { href: "/admin/conjuntos", label: "Conjuntos" },
+    { href: "/admin/factores", label: "Factores" },
+    { href: "/admin/distribuidoras", label: "Distribuidoras" },
+    { href: "/admin/clientes", label: "Clientes" },
+    { href: "/admin/ventas", label: "Ventas" },
+    { href: "/admin/creditos", label: "Créditos" },
+  ];
 
   return (
     <nav className="fixed w-full bg-gray-900 text-white z-50">
@@ -26,40 +38,23 @@ export default function AdminNav() {
             </Link>
 
             <div className="hidden md:flex items-center space-x-6">
-              <Link 
-                href="/admin" 
-                className={`text-sm uppercase tracking-wider transition-colors ${
-                  pathname === '/admin' ? 'text-white' : 'text-gray-400 hover:text-white'
-                }`}
-              >
-                Dashboard
-              </Link>
-              <Link 
-                href="/admin/productos" 
-                className={`text-sm uppercase tracking-wider transition-colors ${
-                  isActive('/admin/productos') ? 'text-white' : 'text-gray-400 hover:text-white'
-                }`}
-              >
-                Productos
-              </Link>
-              <Link 
-                href="/admin/conjuntos" 
-                className={`text-sm uppercase tracking-wider transition-colors ${
-                  isActive('/admin/conjuntos') ? 'text-white' : 'text-gray-400 hover:text-white'
-                }`}
-              >
-                Conjuntos
-              </Link>
-              <Link 
-                href="/admin/factores" 
-                className={`text-sm uppercase tracking-wider transition-colors ${
-                  isActive('/admin/factores') ? 'text-white' : 'text-gray-400 hover:text-white'
-                }`}
-              >
-                Factores
-              </Link>
-              <Link 
-                href="/" 
+              {navLinks.map(({ href, label, exact }) => (
+                <Link
+                  key={href}
+                  href={href}
+                  className={`text-sm uppercase tracking-wider transition-colors ${
+                    exact
+                      ? pathname === href
+                      : isActive(href)
+                        ? "text-white"
+                        : "text-gray-400 hover:text-white"
+                  }`}
+                >
+                  {label}
+                </Link>
+              ))}
+              <Link
+                href="/"
                 target="_blank"
                 className="text-sm uppercase tracking-wider text-gray-400 hover:text-white transition-colors"
               >
@@ -81,7 +76,7 @@ export default function AdminNav() {
             onClick={() => setIsOpen(!isOpen)}
             className="md:hidden p-2 rounded-md hover:bg-gray-800"
           >
-            {isOpen ? '✕' : '☰'}
+            {isOpen ? "✕" : "☰"}
           </button>
         </div>
       </div>
@@ -89,34 +84,16 @@ export default function AdminNav() {
       {isOpen && (
         <div className="md:hidden border-t border-gray-800">
           <div className="px-2 pt-2 pb-3 space-y-1">
-            <Link
-              href="/admin"
-              className="block px-3 py-2 text-sm uppercase tracking-wider hover:bg-gray-800"
-              onClick={() => setIsOpen(false)}
-            >
-              Dashboard
-            </Link>
-            <Link
-              href="/admin/productos"
-              className="block px-3 py-2 text-sm uppercase tracking-wider hover:bg-gray-800"
-              onClick={() => setIsOpen(false)}
-            >
-              Productos
-            </Link>
-            <Link
-              href="/admin/conjuntos"
-              className="block px-3 py-2 text-sm uppercase tracking-wider hover:bg-gray-800"
-              onClick={() => setIsOpen(false)}
-            >
-              Conjuntos
-            </Link>
-            <Link
-              href="/admin/factores"
-              className="block px-3 py-2 text-sm uppercase tracking-wider hover:bg-gray-800"
-              onClick={() => setIsOpen(false)}
-            >
-              Factores
-            </Link>
+            {navLinks.map(({ href, label }) => (
+              <Link
+                key={href}
+                href={href}
+                className="block px-3 py-2 text-sm uppercase tracking-wider hover:bg-gray-800"
+                onClick={() => setIsOpen(false)}
+              >
+                {label}
+              </Link>
+            ))}
             <Link
               href="/"
               target="_blank"
