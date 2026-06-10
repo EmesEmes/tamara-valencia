@@ -1,9 +1,13 @@
-'use client';
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { supabase, getFactores } from '@/lib/supabase/client';
-import { TIPOS_PRODUCTO, CATEGORIAS_PRODUCTO, MATERIALES_PRODUCTO } from '@/lib/constants';
-import ImageUploader from './ImageUploader';
+"use client";
+import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import { supabase, getFactores } from "@/lib/supabase/client";
+import {
+  TIPOS_PRODUCTO,
+  CATEGORIAS_PRODUCTO,
+  MATERIALES_PRODUCTO,
+} from "@/lib/constants";
+import ImageUploader from "./ImageUploader";
 
 export default function ProductForm({ producto = null }) {
   const router = useRouter();
@@ -12,20 +16,20 @@ export default function ProductForm({ producto = null }) {
   const [factores, setFactores] = useState([]);
   const [precioCalculado, setPrecioCalculado] = useState(0);
   const [formData, setFormData] = useState({
-    codigo: '',
-    tipo: '',
-    categoria: '',
-    nombre_comercial: '',
-    material: '',
-    peso: '',
-    descripcion: '',
-    observaciones: '',
-    talla: '',
-    id_conjunto: '',
-    id_factor: '',
+    codigo: "",
+    tipo: "",
+    categoria: "",
+    nombre_comercial: "",
+    material: "",
+    peso: "",
+    descripcion: "",
+    observaciones: "",
+    talla: "",
+    id_conjunto: "",
+    id_factor: "",
     activo: true,
-    imagen_url: '',
-    imagen_public_id: '',
+    imagen_url: "",
+    imagen_public_id: "",
     stock: 1,
   });
 
@@ -34,41 +38,36 @@ export default function ProductForm({ producto = null }) {
     fetchFactores();
     if (producto) {
       setFormData({
-        codigo: producto.codigo || '',
-        tipo: producto.tipo || '',
-        categoria: producto.categoria || '',
-        nombre_comercial: producto.nombre_comercial || '',
-        material: producto.material || '',
-        peso: producto.peso || '',
-        descripcion: producto.descripcion || '',
-        observaciones: producto.observaciones || '',
-        talla: producto.talla || '',
-        id_conjunto: producto.id_conjunto || '',
-        id_factor: producto.id_factor || '',
+        codigo: producto.codigo || "",
+        tipo: producto.tipo || "",
+        categoria: producto.categoria || "",
+        nombre_comercial: producto.nombre_comercial || "",
+        material: producto.material || "",
+        peso: producto.peso || "",
+        descripcion: producto.descripcion || "",
+        observaciones: producto.observaciones || "",
+        talla: producto.talla || "",
+        id_conjunto: producto.id_conjunto || "",
+        id_factor: producto.id_factor || "",
         activo: producto.activo ?? true,
-        imagen_url: producto.imagen_url || '',
-        imagen_public_id: producto.imagen_public_id || '',
+        imagen_url: producto.imagen_url || "",
+        imagen_public_id: producto.imagen_public_id || "",
         stock: producto.stock ?? 1,
       });
     }
   }, [producto]);
 
-  // Calcular precio cuando cambia peso o factor
-  useEffect(() => {
-    calcularPrecio();
-  }, [formData.peso, formData.id_factor, factores]);
-
   const fetchConjuntos = async () => {
     try {
       const { data, error } = await supabase
-        .from('conjuntos')
-        .select('*')
-        .order('nombre');
+        .from("conjuntos")
+        .select("*")
+        .order("nombre");
 
       if (error) throw error;
       setConjuntos(data);
     } catch (error) {
-      console.error('Error al cargar conjuntos:', error);
+      console.error("Error al cargar conjuntos:", error);
     }
   };
 
@@ -77,38 +76,50 @@ export default function ProductForm({ producto = null }) {
       const data = await getFactores();
       setFactores(data);
     } catch (error) {
-      console.error('Error al cargar factores:', error);
+      console.error("Error al cargar factores:", error);
     }
   };
 
-  const calcularPrecio = () => {
+  const calcularPrecio = useCallback(() => {
     const peso = parseFloat(formData.peso) || 0;
-    const factor = factores.find(f => f.id === formData.id_factor);
-    
+    const factor = factores.find((f) => f.id === formData.id_factor);
+
     if (peso > 0 && factor) {
       const precio = peso * parseFloat(factor.valor);
-      // Redondear correctamente a 2 decimales
       const precioRedondeado = Math.round(precio * 100) / 100;
       setPrecioCalculado(precioRedondeado.toFixed(2));
     } else {
       setPrecioCalculado(0);
     }
-  };
+  }, [formData.peso, formData.id_factor, factores]);
+
+  // Calcular precio cuando cambia peso, factor o factores
+  useEffect(() => {
+    calcularPrecio();
+  }, [calcularPrecio]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData({
       ...formData,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: type === "checkbox" ? checked : value,
     });
   };
 
   const handleImageUpload = (imageUrl, publicId) => {
-    setFormData({
-      ...formData,
+    setFormData((prev) => ({
+      ...prev,
       imagen_url: imageUrl,
-      imagen_public_id: publicId
-    });
+      imagen_public_id: publicId,
+    }));
+  };
+
+  const handleImageRemove = () => {
+    setFormData((prev) => ({
+      ...prev,
+      imagen_url: "",
+      imagen_public_id: "",
+    }));
   };
 
   const validateCodigo = async (codigo) => {
@@ -117,9 +128,9 @@ export default function ProductForm({ producto = null }) {
     }
 
     const { data, error } = await supabase
-      .from('productos')
-      .select('codigo')
-      .eq('codigo', codigo)
+      .from("productos")
+      .select("codigo")
+      .eq("codigo", codigo)
       .single();
 
     return !data;
@@ -133,20 +144,20 @@ export default function ProductForm({ producto = null }) {
       // Validar código duplicado
       const codigoValido = await validateCodigo(formData.codigo);
       if (!codigoValido) {
-        alert('El código ya existe. Por favor, usa otro código.');
+        alert("El código ya existe. Por favor, usa otro código.");
         setLoading(false);
         return;
       }
 
       // Validar que tenga peso y factor para calcular precio
       if (!formData.peso || parseFloat(formData.peso) <= 0) {
-        alert('El peso debe ser mayor a 0');
+        alert("El peso debe ser mayor a 0");
         setLoading(false);
         return;
       }
 
       if (!formData.id_factor) {
-        alert('Debes seleccionar un factor');
+        alert("Debes seleccionar un factor");
         setLoading(false);
         return;
       }
@@ -159,40 +170,36 @@ export default function ProductForm({ producto = null }) {
         id_factor: formData.id_factor || null,
       };
 
-      // Eliminar campos que no existen en la BD
-      delete dataToSave.imagen_url;
-      delete dataToSave.imagen_public_id;
-
-      // Agregar campos de imagen si existen
-      if (formData.imagen_url) {
-        dataToSave.imagen_url = formData.imagen_url;
-        dataToSave.imagen_public_id = formData.imagen_public_id;
-      }
+      // Guardar imagen correctamente — null si está vacía
+      dataToSave.imagen_url = formData.imagen_url || null;
+      dataToSave.imagen_public_id = formData.imagen_public_id || null;
 
       let error;
 
       if (producto) {
         // Actualizar
         const result = await supabase
-          .from('productos')
+          .from("productos")
           .update(dataToSave)
-          .eq('id', producto.id);
+          .eq("id", producto.id);
         error = result.error;
       } else {
         // Crear
-        const result = await supabase
-          .from('productos')
-          .insert([dataToSave]);
+        const result = await supabase.from("productos").insert([dataToSave]);
         error = result.error;
       }
 
       if (error) throw error;
 
-      alert(producto ? 'Producto actualizado exitosamente' : 'Producto creado exitosamente');
-      router.push('/admin/productos');
+      alert(
+        producto
+          ? "Producto actualizado exitosamente"
+          : "Producto creado exitosamente",
+      );
+      router.push("/admin/productos");
     } catch (error) {
-      console.error('Error al guardar producto:', error);
-      alert('Error al guardar el producto: ' + error.message);
+      console.error("Error al guardar producto:", error);
+      alert("Error al guardar el producto: " + error.message);
     } finally {
       setLoading(false);
     }
@@ -201,7 +208,9 @@ export default function ProductForm({ producto = null }) {
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="bg-white p-6 border border-gray-200">
-        <h2 className="text-xl font-light text-gray-900 mb-6">Información Básica</h2>
+        <h2 className="text-xl font-light text-gray-900 mb-6">
+          Información Básica
+        </h2>
 
         <div className="grid md:grid-cols-2 gap-6">
           <div>
@@ -246,7 +255,7 @@ export default function ProductForm({ producto = null }) {
               className="w-full px-4 py-2 border border-gray-300 focus:outline-none focus:border-gray-500"
             >
               <option value="">Seleccionar</option>
-              {TIPOS_PRODUCTO.map(tipo => (
+              {TIPOS_PRODUCTO.map((tipo) => (
                 <option key={tipo.value} value={tipo.value}>
                   {tipo.label}
                 </option>
@@ -266,7 +275,7 @@ export default function ProductForm({ producto = null }) {
               className="w-full px-4 py-2 border border-gray-300 focus:outline-none focus:border-gray-500"
             >
               <option value="">Seleccionar</option>
-              {CATEGORIAS_PRODUCTO.map(categoria => (
+              {CATEGORIAS_PRODUCTO.map((categoria) => (
                 <option key={categoria.value} value={categoria.value}>
                   {categoria.label}
                 </option>
@@ -286,7 +295,7 @@ export default function ProductForm({ producto = null }) {
               className="w-full px-4 py-2 border border-gray-300 focus:outline-none focus:border-gray-500"
             >
               <option value="">Seleccionar</option>
-              {MATERIALES_PRODUCTO.map(material => (
+              {MATERIALES_PRODUCTO.map((material) => (
                 <option key={material.value} value={material.value}>
                   {material.label}
                 </option>
@@ -319,7 +328,7 @@ export default function ProductForm({ producto = null }) {
               className="w-full px-4 py-2 border border-gray-300 focus:outline-none focus:border-gray-500"
             >
               <option value="">Sin conjunto</option>
-              {conjuntos.map(conjunto => (
+              {conjuntos.map((conjunto) => (
                 <option key={conjunto.id} value={conjunto.id}>
                   {conjunto.nombre}
                 </option>
@@ -391,7 +400,9 @@ export default function ProductForm({ producto = null }) {
 
       {/* Sección de Precio */}
       <div className="bg-white p-6 border border-gray-200">
-        <h2 className="text-xl font-light text-gray-900 mb-6">Cálculo de Precio</h2>
+        <h2 className="text-xl font-light text-gray-900 mb-6">
+          Cálculo de Precio
+        </h2>
 
         <div className="grid md:grid-cols-2 gap-6">
           <div>
@@ -423,7 +434,7 @@ export default function ProductForm({ producto = null }) {
               className="w-full px-4 py-2 border border-gray-300 focus:outline-none focus:border-gray-500"
             >
               <option value="">Seleccionar factor</option>
-              {factores.map(factor => (
+              {factores.map((factor) => (
                 <option key={factor.id} value={factor.id}>
                   {factor.nombre} (${factor.valor})
                 </option>
@@ -439,17 +450,22 @@ export default function ProductForm({ producto = null }) {
               ${precioCalculado}
             </p>
             <p className="text-xs text-gray-500 mt-2">
-              {formData.peso} gramos × ${factores.find(f => f.id === formData.id_factor)?.valor || 0}
+              {formData.peso} gramos × $
+              {factores.find((f) => f.id === formData.id_factor)?.valor || 0}
             </p>
           </div>
         )}
       </div>
 
       <div className="bg-white p-6 border border-gray-200">
-        <h2 className="text-xl font-light text-gray-900 mb-6">Imagen del Producto</h2>
+        <h2 className="text-xl font-light text-gray-900 mb-6">
+          Imagen del Producto
+        </h2>
         <ImageUploader
           currentImage={formData.imagen_url}
+          currentPublicId={formData.imagen_public_id}
           onImageUpload={handleImageUpload}
+          onImageRemove={handleImageRemove}
           productCode={formData.codigo}
           requireCode={true}
         />
@@ -458,7 +474,7 @@ export default function ProductForm({ producto = null }) {
       <div className="flex justify-end space-x-4">
         <button
           type="button"
-          onClick={() => router.push('/admin/productos')}
+          onClick={() => router.push("/admin/productos")}
           className="px-6 py-3 border border-gray-300 text-gray-700 text-sm uppercase tracking-wider hover:bg-gray-50 transition-colors"
         >
           Cancelar
@@ -468,7 +484,11 @@ export default function ProductForm({ producto = null }) {
           disabled={loading}
           className="px-6 py-3 bg-gray-900 text-white text-sm uppercase tracking-wider hover:bg-gray-800 transition-colors disabled:opacity-50"
         >
-          {loading ? 'Guardando...' : (producto ? 'Actualizar' : 'Crear Producto')}
+          {loading
+            ? "Guardando..."
+            : producto
+              ? "Actualizar"
+              : "Crear Producto"}
         </button>
       </div>
     </form>

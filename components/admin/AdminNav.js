@@ -26,6 +26,7 @@ export default function AdminNav() {
     { href: "/admin/clientes", label: "Clientes" },
     { href: "/admin/ventas", label: "Ventas" },
     { href: "/admin/creditos", label: "Créditos" },
+    { href: "/admin/reportes", label: "Reportes" },
   ];
 
   return (
