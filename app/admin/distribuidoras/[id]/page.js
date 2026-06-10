@@ -2,7 +2,6 @@
 import { use } from "react";
 import { useRouter } from "next/navigation";
 import DistribuidoraForm from "@/components/admin/DistribuidoraForm";
-import Link from "next/link";
 
 export default function EditarDistribuidoraPage({ params }) {
   const resolvedParams = use(params);
