@@ -150,14 +150,19 @@ export default function ProductosAdminPage() {
         if (filtrosActivos.sinImagen === false)
           query = query.not("imagen_url", "is", null);
 
-        // Filtro de stock
-        if (filtrosActivos.sinStock === true) query = query.eq("stock", 0);
+        // Filtro de stock — por defecto solo con stock > 0
+        if (filtrosActivos.sinStock === true) {
+          query = query.eq("stock", 0);
+        } else if (filtrosActivos.soloInactivos !== true) {
+          query = query.gt("stock", 0);
+        }
 
-        // Filtro de activo/inactivo
+        // Filtro de activo/inactivo — por defecto solo activos
         if (filtrosActivos.soloInactivos === true) {
           query = query.eq("activo", false);
+        } else {
+          query = query.eq("activo", true);
         }
-        // Si no se filtra por inactivos, muestra todos (activos e inactivos)
 
         const { data, error } = await query;
         if (error) throw error;
