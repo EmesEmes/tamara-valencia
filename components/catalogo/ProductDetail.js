@@ -10,12 +10,18 @@ import Link from "next/link";
 import { formatPrice } from "@/utils/formatters";
 import LoadingSpinner from "@/components/shared/LoadingSpinner";
 import ProductCard from "./ProductCard";
+import { useCartStore } from "@/lib/cartStore";
 
 export default function ProductDetail({ productId }) {
   const router = useRouter();
   const [producto, setProducto] = useState(null);
   const [productosConjunto, setProductosConjunto] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [feedback, setFeedback] = useState("");
+
+  const addItem = useCartStore((state) => state.addItem);
+  // Nos suscribimos a items directamente para reaccionar en tiempo real
+  const items = useCartStore((state) => state.items);
 
   const calcularPrecio = (prod) => {
     if (!prod.peso || !prod.factor || !prod.factor.valor) return 0;
@@ -25,6 +31,16 @@ export default function ProductDetail({ productId }) {
   const redondearPrecio = (precio) => {
     if (!precio || precio === 0) return 0;
     return Math.ceil(precio / 5) * 5;
+  };
+
+  const handleAgregar = () => {
+    const agregado = addItem(producto);
+    if (agregado) {
+      setFeedback("¡Agregado al carrito!");
+    } else {
+      setFeedback("Ya tienes el máximo disponible");
+    }
+    setTimeout(() => setFeedback(""), 2000);
   };
 
   useEffect(() => {
@@ -181,22 +197,80 @@ export default function ProductDetail({ productId }) {
             </div>
           )}
 
-          {/* Botón WhatsApp */}
-          <div className="pt-6">
-            <a
-              href={`https://wa.me/593998444531?text=${encodeURIComponent(
-                `Hola! Me interesa esta joya:\n\n` +
-                  `*${producto.nombre_comercial}*\n` +
-                  `Código: ${producto.codigo}\n` +
-                  `Ver más: ${typeof window !== "undefined" ? window.location.origin : ""}/catalogo/${productId}`,
-              )}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-block w-full md:w-auto px-12 py-4 bg-gray-900 text-white text-center font-light tracking-widest uppercase text-sm hover:bg-gray-800 transition-all duration-300"
-            >
-              Consultar por WhatsApp
-            </a>
-          </div>
+          {/* Botones de acción */}
+          {(() => {
+            const cantidadEnCarrito =
+              items.find((item) => item.id === producto.id)?.quantity || 0;
+            const sinStock = !producto.stock || producto.stock <= 0;
+            const stockMaximoEnCarrito =
+              !sinStock && cantidadEnCarrito >= producto.stock;
+            const botonDeshabilitado = sinStock || stockMaximoEnCarrito;
+
+            return (
+              <div className="pt-6 space-y-4">
+                {/* Indicador de que ya está en el carrito */}
+                {cantidadEnCarrito > 0 && (
+                  <div className="flex items-center gap-2 text-sm text-gray-700 bg-gray-50 border border-gray-200 px-4 py-3">
+                    <svg
+                      className="w-4 h-4 text-gray-900"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M5 13l4 4L19 7"
+                      />
+                    </svg>
+                    Ya tienes {cantidadEnCarrito}{" "}
+                    {cantidadEnCarrito === 1 ? "unidad" : "unidades"} en el
+                    carrito
+                  </div>
+                )}
+
+                {/* Botón agregar al carrito */}
+                <button
+                  onClick={handleAgregar}
+                  disabled={botonDeshabilitado}
+                  className={`w-full px-12 py-4 text-center font-light tracking-widest uppercase text-sm transition-all duration-300 ${
+                    sinStock
+                      ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                      : stockMaximoEnCarrito
+                        ? "bg-gray-100 text-gray-500 cursor-not-allowed border border-gray-300"
+                        : feedback
+                          ? "bg-green-600 text-white"
+                          : "bg-gray-900 text-white hover:bg-gray-800"
+                  }`}
+                >
+                  {sinStock
+                    ? "Agotado"
+                    : stockMaximoEnCarrito
+                      ? "Ya tienes todo el stock"
+                      : feedback ||
+                        (cantidadEnCarrito > 0
+                          ? "Agregar otra unidad"
+                          : "Agregar al carrito")}
+                </button>
+
+                {/* Botón WhatsApp */}
+                <a
+                  href={`https://wa.me/593998444531?text=${encodeURIComponent(
+                    `Hola! Me interesa esta joya:\n\n` +
+                      `*${producto.nombre_comercial}*\n` +
+                      `Código: ${producto.codigo}\n` +
+                      `Ver más: ${typeof window !== "undefined" ? window.location.origin : ""}/catalogo/${productId}`,
+                  )}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-block w-full px-12 py-4 border border-gray-900 text-gray-900 text-center font-light tracking-widest uppercase text-sm hover:bg-gray-50 transition-all duration-300"
+                >
+                  Consultar por WhatsApp
+                </a>
+              </div>
+            );
+          })()}
         </div>
       </div>
 

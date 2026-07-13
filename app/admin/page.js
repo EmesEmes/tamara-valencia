@@ -149,11 +149,11 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* FILA 2: Inventario y ventas del mes */}
+      {/* FILA 2: Inventario (calculado y final) */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
         <div className="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 p-6">
           <p className="text-blue-800 text-sm uppercase tracking-wider mb-2 font-medium">
-            Valor de Inventario
+            Valor de Inventario (Calculado)
           </p>
           {inventarioLoading ? (
             <p className="text-2xl font-light text-blue-900">Cargando...</p>
@@ -169,6 +169,27 @@ export default function AdminDashboard() {
           )}
         </div>
 
+        <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 border border-indigo-200 p-6">
+          <p className="text-indigo-800 text-sm uppercase tracking-wider mb-2 font-medium">
+            Valor Final de Inventario
+          </p>
+          {inventarioLoading ? (
+            <p className="text-2xl font-light text-indigo-900">Cargando...</p>
+          ) : (
+            <>
+              <p className="text-4xl font-light text-indigo-900 mb-1">
+                {formatCurrency(inventarioData?.valorFinal || 0)}
+              </p>
+              <p className="text-xs text-indigo-700">
+                Con precio de venta (redondeado a múltiplo de 5)
+              </p>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* FILA 3: Ventas del mes */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
         <div className="bg-gradient-to-br from-green-50 to-green-100 border border-green-200 p-6">
           <p className="text-green-800 text-sm uppercase tracking-wider mb-2 font-medium">
             Ventas de {mesActual}
@@ -180,6 +201,16 @@ export default function AdminDashboard() {
             {stats.ventasMes} {stats.ventasMes === 1 ? "venta" : "ventas"}{" "}
             registradas
           </p>
+        </div>
+
+        <div className="bg-white border border-gray-200 p-6 flex flex-col justify-center">
+          <p className="text-gray-500 text-sm uppercase tracking-wider mb-2">
+            Productos en Inventario
+          </p>
+          <p className="text-4xl font-light text-gray-900">
+            {inventarioData?.totalProductos || 0}
+          </p>
+          <p className="text-xs text-gray-500 mt-1">Activos y con stock</p>
         </div>
       </div>
 

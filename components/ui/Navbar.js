@@ -1,9 +1,23 @@
 "use client";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useCartStore } from "@/lib/cartStore";
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  // Nos suscribimos al array de items directamente para que el ícono
+  // se actualice en tiempo real cuando cambia el carrito
+  const items = useCartStore((state) => state.items);
+
+  // Evitar hidration mismatch: el carrito vive en localStorage
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const totalItems = mounted
+    ? items.reduce((total, item) => total + item.quantity, 0)
+    : 0;
 
   return (
     <nav className="fixed w-full bg-white/95 backdrop-blur-sm z-50 border-b border-gray-100">
@@ -30,10 +44,19 @@ export default function Navbar() {
               Catálogo
             </Link>
 
-            {/* Carrito comentado temporalmente
             <Link href="/carrito" className="relative group">
-              <svg className="w-6 h-6 text-gray-600 group-hover:text-gray-900 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+              <svg
+                className="w-6 h-6 text-gray-600 group-hover:text-gray-900 transition-colors"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="1.5"
+                  d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
+                />
               </svg>
               {totalItems > 0 && (
                 <span className="absolute -top-2 -right-2 bg-gray-900 text-white text-xs w-5 h-5 flex items-center justify-center rounded-full font-medium">
@@ -41,29 +64,52 @@ export default function Navbar() {
                 </span>
               )}
             </Link>
-            */}
           </div>
 
-          <button
-            onClick={() => setIsOpen(!isOpen)}
-            className="md:hidden p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100"
-          >
-            <svg
-              className="h-6 w-6"
-              fill="none"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              {isOpen ? (
-                <path d="M6 18L18 6M6 6l12 12" />
-              ) : (
-                <path d="M4 6h16M4 12h16M4 18h16" />
+          <div className="md:hidden flex items-center gap-4">
+            {/* Carrito visible también en móvil, junto al menú */}
+            <Link href="/carrito" className="relative">
+              <svg
+                className="w-6 h-6 text-gray-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="1.5"
+                  d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
+                />
+              </svg>
+              {totalItems > 0 && (
+                <span className="absolute -top-2 -right-2 bg-gray-900 text-white text-xs w-5 h-5 flex items-center justify-center rounded-full font-medium">
+                  {totalItems}
+                </span>
               )}
-            </svg>
-          </button>
+            </Link>
+
+            <button
+              onClick={() => setIsOpen(!isOpen)}
+              className="p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+            >
+              <svg
+                className="h-6 w-6"
+                fill="none"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                {isOpen ? (
+                  <path d="M6 18L18 6M6 6l12 12" />
+                ) : (
+                  <path d="M4 6h16M4 12h16M4 18h16" />
+                )}
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -85,15 +131,18 @@ export default function Navbar() {
             >
               Catálogo
             </Link>
-
-            {/* Carrito mobile comentado temporalmente
-            <Link href="/carrito" className="flex items-center justify-between px-3 py-2 text-sm tracking-widest uppercase text-gray-600 hover:text-gray-900 hover:bg-gray-50" onClick={() => setIsOpen(false)}>
+            <Link
+              href="/carrito"
+              className="flex items-center justify-between px-3 py-2 text-sm tracking-widest uppercase text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+              onClick={() => setIsOpen(false)}
+            >
               <span>Carrito</span>
               {totalItems > 0 && (
-                <span className="bg-gray-900 text-white text-xs px-2 py-1 rounded-full font-medium">{totalItems}</span>
+                <span className="bg-gray-900 text-white text-xs px-2 py-1 rounded-full font-medium">
+                  {totalItems}
+                </span>
               )}
             </Link>
-            */}
           </div>
         </div>
       )}

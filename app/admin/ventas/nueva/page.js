@@ -1,5 +1,5 @@
 "use client";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase/client";
@@ -62,6 +62,28 @@ export default function NuevaVentaPage() {
   const [diaPago, setDiaPago] = useState("1");
   const [notas, setNotas] = useState("");
   const [guardando, setGuardando] = useState(false);
+
+  // Precarga cuando la venta viene de un préstamo (sacar para vender)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const raw = sessionStorage.getItem("prestamo_venta");
+    if (!raw) return;
+    try {
+      const data = JSON.parse(raw);
+      if (data.productos?.length) {
+        setProductosSeleccionados(data.productos);
+      }
+      if (data.distribuidoraId) {
+        setVia("distribuidora");
+        setDistribuidoraId(data.distribuidoraId);
+      }
+    } catch (e) {
+      console.error("Error al precargar venta desde préstamo:", e);
+    } finally {
+      // Limpiar para que no se vuelva a precargar si recarga la página
+      sessionStorage.removeItem("prestamo_venta");
+    }
+  }, []);
 
   // Cargar distribuidoras y conjuntos
   const { data: distribuidoras = [] } = useQuery({

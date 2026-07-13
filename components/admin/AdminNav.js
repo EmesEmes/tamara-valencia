@@ -23,6 +23,7 @@ export default function AdminNav() {
     { href: "/admin/conjuntos", label: "Conjuntos" },
     { href: "/admin/factores", label: "Factores" },
     { href: "/admin/distribuidoras", label: "Distribuidoras" },
+    { href: "/admin/prestamos", label: "Préstamos" },
     { href: "/admin/clientes", label: "Clientes" },
     { href: "/admin/ventas", label: "Ventas" },
     { href: "/admin/creditos", label: "Créditos" },

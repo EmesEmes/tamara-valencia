@@ -8,6 +8,7 @@ import {
   getEgresosMensuales,
   getResumenMes,
   upsertEgreso,
+  getReportePorDistribuidora,
 } from "@/lib/supabase/reportes";
 import {
   BarChart,
@@ -117,6 +118,13 @@ export default function ReportesPage() {
     queryFn: () => getEgresosMensuales(año),
     staleTime: 2 * 60 * 1000,
   });
+
+  const { data: porDistribuidora = [], isLoading: distribuidoraLoading } =
+    useQuery({
+      queryKey: ["reporte-distribuidora", año],
+      queryFn: () => getReportePorDistribuidora(año),
+      staleTime: 5 * 60 * 1000,
+    });
 
   // Proyección a diciembre
   const mesesConVentas = ventasPorMes.filter((m) => m.total > 0);
@@ -354,6 +362,109 @@ export default function ReportesPage() {
                 <Bar dataKey="cobrado" name="Cobrado" fill="#1f2937" />
               </BarChart>
             </ResponsiveContainer>
+          </>
+        )}
+      </div>
+
+      {/* VENTAS POR DISTRIBUIDORA */}
+      <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-4">
+        Ventas por Distribuidora — {año}
+      </h2>
+      <div className="bg-white border border-gray-200 p-6 mb-10">
+        {distribuidoraLoading ? (
+          <LoadingSpinner />
+        ) : porDistribuidora.length === 0 ? (
+          <p className="text-gray-500 text-sm text-center py-8">
+            No hay ventas por distribuidora en {año}
+          </p>
+        ) : (
+          <>
+            {/* Gráfica de barras: quién vendió más */}
+            <ResponsiveContainer
+              width="100%"
+              height={Math.max(200, porDistribuidora.length * 50)}
+            >
+              <BarChart
+                data={porDistribuidora}
+                layout="vertical"
+                margin={{ left: 20, right: 20 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+                <XAxis
+                  type="number"
+                  tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`}
+                  tick={{ fontSize: 12 }}
+                />
+                <YAxis
+                  type="category"
+                  dataKey="nombre"
+                  width={120}
+                  tick={{ fontSize: 12 }}
+                />
+                <Tooltip formatter={(value) => formatCurrency(value)} />
+                <Bar
+                  dataKey="totalVendido"
+                  name="Total vendido"
+                  fill="#1f2937"
+                />
+              </BarChart>
+            </ResponsiveContainer>
+
+            {/* Tabla con el detalle */}
+            <div className="mt-6 overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 border-b border-gray-200">
+                  <tr>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase">
+                      Distribuidora
+                    </th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase">
+                      Ventas
+                    </th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase">
+                      Unidades
+                    </th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase">
+                      Total vendido
+                    </th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase">
+                      Comisión
+                    </th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase">
+                      Comisión pendiente
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {porDistribuidora.map((d) => (
+                    <tr key={d.id} className="hover:bg-gray-50">
+                      <td className="px-4 py-2 font-medium text-gray-900">
+                        {d.nombre}
+                      </td>
+                      <td className="px-4 py-2 text-gray-600">
+                        {d.numeroVentas}
+                      </td>
+                      <td className="px-4 py-2 text-gray-600">{d.unidades}</td>
+                      <td className="px-4 py-2 font-medium text-gray-900">
+                        {formatCurrency(d.totalVendido)}
+                      </td>
+                      <td className="px-4 py-2 text-gray-600">
+                        {formatCurrency(d.comisionTotal)}
+                      </td>
+                      <td className="px-4 py-2">
+                        {d.comisionPendiente > 0 ? (
+                          <span className="text-red-600 font-medium">
+                            {formatCurrency(d.comisionPendiente)}
+                          </span>
+                        ) : (
+                          <span className="text-green-600">Al día</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </>
         )}
       </div>

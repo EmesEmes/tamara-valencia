@@ -1,9 +1,20 @@
 "use client";
 import Link from "next/link";
 import Image from "next/image";
+import { useState } from "react";
 import { formatPrice } from "@/utils/formatters";
+import { useCartStore } from "@/lib/cartStore";
 
 export default function ProductCard({ producto }) {
+  const addItem = useCartStore((state) => state.addItem);
+  // Nos suscribimos a items directamente para reaccionar en tiempo real
+  const items = useCartStore((state) => state.items);
+  const [feedback, setFeedback] = useState("");
+
+  const cantidadEnCarrito =
+    items.find((item) => item.id === producto.id)?.quantity || 0;
+  const enCarrito = cantidadEnCarrito > 0;
+
   const calcularPrecio = (prod) => {
     if (!prod.peso || !prod.factor || !prod.factor.valor) return 0;
     return parseFloat(prod.peso) * parseFloat(prod.factor.valor);
@@ -15,6 +26,23 @@ export default function ProductCard({ producto }) {
   };
 
   const precioFinal = redondearPrecio(calcularPrecio(producto));
+  const sinStock = !producto.stock || producto.stock <= 0;
+  // El usuario ya tiene en el carrito todas las unidades disponibles
+  const stockMaximoEnCarrito = !sinStock && cantidadEnCarrito >= producto.stock;
+
+  const handleAgregar = (e) => {
+    // La tarjeta entera es un Link, evitamos que navegue al hacer click en el botón
+    e.preventDefault();
+    e.stopPropagation();
+
+    const agregado = addItem(producto);
+    if (agregado) {
+      setFeedback("¡Agregado!");
+    } else {
+      setFeedback("Stock máximo");
+    }
+    setTimeout(() => setFeedback(""), 1500);
+  };
 
   return (
     <Link
@@ -68,6 +96,26 @@ export default function ProductCard({ producto }) {
             ¡Última!
           </div>
         )}
+
+        {/* Badge de "en carrito" */}
+        {enCarrito && (
+          <div className="absolute top-3 right-3 bg-gray-900 text-white text-xs px-3 py-1 rounded-full font-medium shadow-md flex items-center gap-1">
+            <svg
+              className="w-3 h-3"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M5 13l4 4L19 7"
+              />
+            </svg>
+            {cantidadEnCarrito} en carrito
+          </div>
+        )}
       </div>
 
       {/* Información */}
@@ -90,9 +138,32 @@ export default function ProductCard({ producto }) {
           {precioFinal > 0 ? formatPrice(precioFinal) : "Precio no disponible"}
         </p>
 
-        <p className="text-sm text-gray-500 uppercase tracking-wider mt-2">
+        <p className="text-sm text-gray-500 uppercase tracking-wider mt-2 mb-4">
           Cod: {producto.codigo}
         </p>
+
+        {/* Botón agregar al carrito */}
+        <button
+          onClick={handleAgregar}
+          disabled={sinStock || stockMaximoEnCarrito}
+          className={`w-full py-2.5 text-center text-xs font-light tracking-widest uppercase transition-colors ${
+            sinStock
+              ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+              : stockMaximoEnCarrito
+                ? "bg-gray-100 text-gray-500 cursor-not-allowed border border-gray-300"
+                : feedback
+                  ? "bg-green-600 text-white"
+                  : enCarrito
+                    ? "bg-white text-gray-900 border border-gray-900 hover:bg-gray-50"
+                    : "bg-gray-900 text-white hover:bg-gray-800"
+          }`}
+        >
+          {sinStock
+            ? "Agotado"
+            : stockMaximoEnCarrito
+              ? "Ya tienes todo el stock"
+              : feedback || (enCarrito ? "Agregar otra" : "Agregar al carrito")}
+        </button>
       </div>
     </Link>
   );

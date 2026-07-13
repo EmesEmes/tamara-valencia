@@ -82,9 +82,12 @@ export default function DistribuidorasPage() {
             {distribuidoras.map((dist) => (
               <tr key={dist.id} className="hover:bg-gray-50">
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <span className="text-sm font-medium text-gray-900">
+                  <Link
+                    href={`/admin/distribuidoras/${dist.id}`}
+                    className="text-sm font-medium text-gray-900 hover:text-blue-600 hover:underline"
+                  >
                     {dist.nombre}
-                  </span>
+                  </Link>
                   {dist.notas && (
                     <p className="text-xs text-gray-500 mt-1">{dist.notas}</p>
                   )}
@@ -109,6 +112,12 @@ export default function DistribuidorasPage() {
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                  <Link
+                    href={`/admin/distribuidoras/${dist.id}`}
+                    className="text-gray-700 hover:text-gray-900 mr-4"
+                  >
+                    Ver comisiones
+                  </Link>
                   <Link
                     href={`/admin/distribuidoras/${dist.id}/editar`}
                     className="text-blue-600 hover:text-blue-900 mr-4"
