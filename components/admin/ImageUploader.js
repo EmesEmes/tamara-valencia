@@ -83,7 +83,6 @@ export default function ImageUploader({
       }
 
       // PASO 2: Generar public_id igual al código limpio (sin timestamp)
-      // Se usa invalidate: true para que Cloudinary invalide el caché del CDN
       const codigoLimpio =
         requireCode && productCode
           ? productCode
@@ -104,7 +103,6 @@ export default function ImageUploader({
       );
       formData.append("folder", "tamara-valencia");
       formData.append("public_id", nuevoPublicId);
-      formData.append("invalidate", "true"); // Invalida el caché del CDN
 
       const response = await fetch(
         `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`,

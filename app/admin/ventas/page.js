@@ -9,9 +9,10 @@ import { formatPrice } from "@/utils/formatters";
 const VIAS_LABEL = {
   showroom: "Showroom",
   redes: "Redes Sociales",
-  contacto_directo: "Contacto Directo",
   referido: "Referido",
   distribuidora: "Distribuidora",
+  tvcj: "TVCJ",
+  cuenta_gerencia: "Cuenta Gerencia",
 };
 
 export default function VentasPage() {
@@ -45,12 +46,20 @@ export default function VentasPage() {
         <h1 className="font-elegant text-4xl font-light text-gray-900">
           Ventas
         </h1>
-        <Link
-          href="/admin/ventas/nueva"
-          className="px-6 py-3 bg-gray-900 text-white text-sm uppercase tracking-wider hover:bg-gray-800 transition-colors"
-        >
-          Nueva Venta
-        </Link>
+        <div className="flex gap-3">
+          <Link
+            href="/admin/ventas/historica"
+            className="px-6 py-3 border border-gray-900 text-gray-900 text-sm uppercase tracking-wider hover:bg-gray-50 transition-colors"
+          >
+            Registro Histórico
+          </Link>
+          <Link
+            href="/admin/ventas/nueva"
+            className="px-6 py-3 bg-gray-900 text-white text-sm uppercase tracking-wider hover:bg-gray-800 transition-colors"
+          >
+            Nueva Venta
+          </Link>
+        </div>
       </div>
 
       {/* Filtros */}

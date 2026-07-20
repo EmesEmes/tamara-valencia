@@ -87,6 +87,9 @@ export default function ClientesPage() {
                 Email
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                Atendido por
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                 Estado
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
@@ -98,7 +101,12 @@ export default function ClientesPage() {
             {clientesFiltrados.map((cliente) => (
               <tr key={cliente.id} className="hover:bg-gray-50">
                 <td className="px-6 py-4 text-sm font-medium text-gray-900">
-                  {cliente.nombre}
+                  <Link
+                    href={`/admin/clientes/${cliente.id}`}
+                    className="hover:text-blue-600 hover:underline"
+                  >
+                    {cliente.nombre}
+                  </Link>
                   {cliente.notas && (
                     <p className="text-xs text-gray-500 mt-1 font-normal">
                       {cliente.notas}
@@ -114,6 +122,11 @@ export default function ClientesPage() {
                 <td className="px-6 py-4 text-sm text-gray-600">
                   {cliente.email || "-"}
                 </td>
+                <td className="px-6 py-4 text-sm text-gray-600">
+                  {cliente.distribuidora?.nombre || (
+                    <span className="text-gray-400">Sin asignar</span>
+                  )}
+                </td>
                 <td className="px-6 py-4">
                   <span
                     className={`px-2 py-1 text-xs ${
@@ -126,6 +139,12 @@ export default function ClientesPage() {
                   </span>
                 </td>
                 <td className="px-6 py-4 text-sm space-x-3">
+                  <Link
+                    href={`/admin/clientes/${cliente.id}`}
+                    className="text-gray-700 hover:text-gray-900"
+                  >
+                    Ver
+                  </Link>
                   <Link
                     href={`/admin/clientes/${cliente.id}/editar`}
                     className="text-blue-600 hover:text-blue-900"

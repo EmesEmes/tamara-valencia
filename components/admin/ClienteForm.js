@@ -6,17 +6,33 @@ import {
   createCliente,
   updateCliente,
 } from "@/lib/supabase/clientes";
+import { getDistribuidoras } from "@/lib/supabase/distribuidoras";
 
 export default function ClienteForm({ clienteId = null }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [distribuidoras, setDistribuidoras] = useState([]);
   const [formData, setFormData] = useState({
     nombre: "",
     telefono: "",
     email: "",
     cedula: "",
     notas: "",
+    id_distribuidora: "",
   });
+
+  // Cargar distribuidoras para el selector
+  useEffect(() => {
+    const cargarDistribuidoras = async () => {
+      try {
+        const data = await getDistribuidoras();
+        setDistribuidoras(data);
+      } catch (error) {
+        console.error("Error al cargar distribuidoras:", error);
+      }
+    };
+    cargarDistribuidoras();
+  }, []);
 
   const fetchCliente = useCallback(async () => {
     if (!clienteId) return;
@@ -28,6 +44,7 @@ export default function ClienteForm({ clienteId = null }) {
         email: data.email || "",
         cedula: data.cedula || "",
         notas: data.notas || "",
+        id_distribuidora: data.id_distribuidora || "",
       });
     } catch (error) {
       console.error("Error al cargar cliente:", error);
@@ -127,6 +144,28 @@ export default function ClienteForm({ clienteId = null }) {
           placeholder="Ej: 1234567890"
           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent"
         />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Atendido por
+        </label>
+        <select
+          name="id_distribuidora"
+          value={formData.id_distribuidora}
+          onChange={handleChange}
+          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent"
+        >
+          <option value="">Sin asignar</option>
+          {distribuidoras.map((d) => (
+            <option key={d.id} value={d.id}>
+              {d.nombre}
+            </option>
+          ))}
+        </select>
+        <p className="mt-1 text-xs text-gray-500">
+          Distribuidora, TVCJ o Gerencia que atiende a este cliente (opcional)
+        </p>
       </div>
 
       <div>

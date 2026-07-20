@@ -17,9 +17,10 @@ import Link from "next/link";
 const VIAS_VENTA = [
   { value: "showroom", label: "Showroom" },
   { value: "redes", label: "Redes Sociales" },
-  { value: "contacto_directo", label: "Contacto Directo" },
   { value: "referido", label: "Referido" },
   { value: "distribuidora", label: "Distribuidora" },
+  { value: "tvcj", label: "TVCJ" },
+  { value: "cuenta_gerencia", label: "Cuenta Gerencia" },
 ];
 
 export default function NuevaVentaPage() {

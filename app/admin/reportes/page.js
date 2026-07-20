@@ -30,17 +30,19 @@ import LoadingSpinner from "@/components/shared/LoadingSpinner";
 const COLORES_VIA = {
   showroom: "#1f2937",
   redes: "#4b5563",
-  contacto_directo: "#6b7280",
-  referido: "#9ca3af",
-  distribuidora: "#d1d5db",
+  referido: "#6b7280",
+  distribuidora: "#9ca3af",
+  tvcj: "#b0b5bd",
+  cuenta_gerencia: "#d1d5db",
 };
 
 const VIAS_LABEL = {
   showroom: "Showroom",
   redes: "Redes",
-  contacto_directo: "Directo",
   referido: "Referido",
   distribuidora: "Distribuidora",
+  tvcj: "TVCJ",
+  cuenta_gerencia: "Cuenta Gerencia",
 };
 
 const COLORES_TIPO = [

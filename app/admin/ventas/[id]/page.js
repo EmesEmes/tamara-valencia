@@ -9,9 +9,10 @@ import LoadingSpinner from "@/components/shared/LoadingSpinner";
 const VIAS_LABEL = {
   showroom: "Showroom",
   redes: "Redes Sociales",
-  contacto_directo: "Contacto Directo",
   referido: "Referido",
   distribuidora: "Distribuidora",
+  tvcj: "TVCJ",
+  cuenta_gerencia: "Cuenta Gerencia",
 };
 
 export default function DetalleVentaPage({ params }) {
