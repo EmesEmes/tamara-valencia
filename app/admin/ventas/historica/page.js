@@ -1,10 +1,11 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { buscarClientes } from "@/lib/supabase/clientes";
 import { getDistribuidoras } from "@/lib/supabase/distribuidoras";
 import { registrarVentaHistorica } from "@/lib/supabase/ventas";
+import { getCuentaPorCliente } from "@/lib/supabase/cuentas";
 import { formatPrice } from "@/utils/formatters";
 
 const VIAS_VENTA = [
@@ -19,30 +20,23 @@ const VIAS_VENTA = [
 export default function VentaHistoricaPage() {
   const router = useRouter();
 
-  // Datos básicos de la venta
   const [fecha, setFecha] = useState("");
   const [total, setTotal] = useState("");
   const [via, setVia] = useState("");
   const [distribuidoraId, setDistribuidoraId] = useState("");
   const [descripcion, setDescripcion] = useState("");
 
-  // Cliente
   const [busquedaCliente, setBusquedaCliente] = useState("");
   const [clientesEncontrados, setClientesEncontrados] = useState([]);
   const [clienteSeleccionado, setClienteSeleccionado] = useState(null);
   const [buscandoCliente, setBuscandoCliente] = useState(false);
 
-  // Crédito
   const [esCredito, setEsCredito] = useState(false);
+  const [cuentaCliente, setCuentaCliente] = useState(null);
+  const [cargandoCuenta, setCargandoCuenta] = useState(false);
   const [cuotaMensual, setCuotaMensual] = useState("");
-  const [saldoPendiente, setSaldoPendiente] = useState("");
   const [diaPago, setDiaPago] = useState("1");
-  const [fechaInicio, setFechaInicio] = useState("");
-
-  // Pagos ya realizados
-  const [pagosPrevios, setPagosPrevios] = useState([]);
-  const [nuevoPagoFecha, setNuevoPagoFecha] = useState("");
-  const [nuevoPagoMonto, setNuevoPagoMonto] = useState("");
+  const [fechaPrimerPago, setFechaPrimerPago] = useState("");
 
   const [guardando, setGuardando] = useState(false);
 
@@ -52,6 +46,27 @@ export default function VentaHistoricaPage() {
     staleTime: 10 * 60 * 1000,
   });
 
+  // Buscar la cuenta del cliente seleccionado
+  useEffect(() => {
+    if (!clienteSeleccionado?.id) {
+      setCuentaCliente(null);
+      return;
+    }
+    let cancelado = false;
+    setCargandoCuenta(true);
+    getCuentaPorCliente(clienteSeleccionado.id)
+      .then((c) => {
+        if (!cancelado) setCuentaCliente(c);
+      })
+      .catch((e) => console.error("Error al buscar cuenta:", e))
+      .finally(() => {
+        if (!cancelado) setCargandoCuenta(false);
+      });
+    return () => {
+      cancelado = true;
+    };
+  }, [clienteSeleccionado?.id]);
+
   const distribuidoraSeleccionada = distribuidoras.find(
     (d) => d.id === distribuidoraId,
   );
@@ -60,8 +75,6 @@ export default function VentaHistoricaPage() {
     ? (totalNum * distribuidoraSeleccionada.porcentaje_comision) / 100
     : 0;
 
-  // Plazo estimado del crédito
-  const saldoNum = parseFloat(saldoPendiente) || 0;
   const cuotaNum = parseFloat(cuotaMensual) || 0;
   const mesesPlazo = cuotaNum > 0 ? Math.ceil(totalNum / cuotaNum) : 0;
 
@@ -77,25 +90,6 @@ export default function VentaHistoricaPage() {
       setBuscandoCliente(false);
     }
   };
-
-  const agregarPago = () => {
-    if (!nuevoPagoFecha || !nuevoPagoMonto || parseFloat(nuevoPagoMonto) <= 0) {
-      alert("Ingrese fecha y monto del pago");
-      return;
-    }
-    setPagosPrevios((prev) => [
-      ...prev,
-      { fecha: nuevoPagoFecha, monto: parseFloat(nuevoPagoMonto) },
-    ]);
-    setNuevoPagoFecha("");
-    setNuevoPagoMonto("");
-  };
-
-  const quitarPago = (index) => {
-    setPagosPrevios((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const totalPagado = pagosPrevios.reduce((sum, p) => sum + p.monto, 0);
 
   const handleConfirmar = async () => {
     if (!fecha) {
@@ -116,16 +110,18 @@ export default function VentaHistoricaPage() {
     }
     if (esCredito) {
       if (!clienteSeleccionado) {
-        alert("Para créditos debe seleccionar un cliente");
+        alert("Para ventas a crédito debe seleccionar un cliente");
         return;
       }
-      if (cuotaNum <= 0) {
-        alert("Debe ingresar la cuota mensual del crédito");
-        return;
-      }
-      if (!fechaInicio) {
-        alert("Debe ingresar la fecha de inicio del crédito");
-        return;
+      if (!cuentaCliente) {
+        if (cuotaNum <= 0) {
+          alert("Debe ingresar la cuota mensual acordada");
+          return;
+        }
+        if (!fechaPrimerPago) {
+          alert("Debe ingresar la fecha del primer pago");
+          return;
+        }
       }
     }
 
@@ -137,22 +133,9 @@ export default function VentaHistoricaPage() {
 
     setGuardando(true);
     try {
-      // Calcular próximo pago basado en la fecha de inicio y el día de pago
-      let fechaProximoPago = null;
-      if (esCredito && fechaInicio) {
-        const inicio = new Date(fechaInicio);
-        fechaProximoPago = new Date(
-          inicio.getFullYear(),
-          inicio.getMonth() + pagosPrevios.length + 1,
-          Math.min(parseInt(diaPago) || 1, 28),
-        )
-          .toISOString()
-          .split("T")[0];
-      }
-
       await registrarVentaHistorica({
         venta: {
-          fecha: new Date(fecha).toISOString(),
+          fecha: `${fecha}T12:00:00`,
           id_cliente: clienteSeleccionado?.id || null,
           total: totalNum,
           via,
@@ -161,18 +144,14 @@ export default function VentaHistoricaPage() {
           es_credito: esCredito,
           notas: descripcion,
         },
-        credito: esCredito
-          ? {
-              monto_total: totalNum,
-              saldo_pendiente: saldoNum,
-              cuota_mensual: cuotaNum,
-              meses_plazo: mesesPlazo,
-              dia_pago: parseInt(diaPago) || 1,
-              fecha_inicio: fechaInicio,
-              fecha_proximo_pago: fechaProximoPago,
-            }
-          : null,
-        pagosPrevios: esCredito ? pagosPrevios : [],
+        cuenta:
+          esCredito && !cuentaCliente
+            ? {
+                cuota_mensual: cuotaNum,
+                dia_pago: parseInt(diaPago) || 1,
+                fecha_primer_pago: fechaPrimerPago,
+              }
+            : null,
       });
 
       alert("Registro histórico guardado exitosamente");
@@ -200,8 +179,8 @@ export default function VentaHistoricaPage() {
         Registro Histórico
       </h1>
       <p className="text-gray-500 mb-10">
-        Para registrar ventas y créditos anteriores al sistema. No afecta el
-        inventario ni descuenta stock.
+        Para registrar ventas anteriores al sistema. No afecta el inventario ni
+        descuenta stock.
       </p>
 
       {/* DATOS DE LA VENTA */}
@@ -238,7 +217,7 @@ export default function VentaHistoricaPage() {
           </div>
         </div>
 
-        <div className="mb-4">
+        <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Descripción de las joyas (opcional)
           </label>
@@ -320,8 +299,7 @@ export default function VentaHistoricaPage() {
               </div>
             )}
             <p className="text-sm text-gray-500 mt-2">
-              El cliente es opcional para ventas de contado, obligatorio para
-              créditos
+              Opcional para ventas de contado, obligatorio para crédito
             </p>
           </>
         )}
@@ -378,7 +356,7 @@ export default function VentaHistoricaPage() {
       </div>
 
       {/* FORMA DE PAGO */}
-      <div className="bg-white border border-gray-200 p-6 mb-6">
+      <div className="bg-white border border-gray-200 p-6 mb-8">
         <h2 className="text-xl font-medium text-gray-900 mb-6 uppercase tracking-wider">
           Forma de Pago
         </h2>
@@ -402,138 +380,95 @@ export default function VentaHistoricaPage() {
                 : "bg-white text-gray-700 border-gray-300 hover:border-gray-900"
             }`}
           >
-            Crédito Directo
+            Crédito
           </button>
         </div>
 
         {esCredito && (
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Cuota mensual ($)
-                </label>
-                <input
-                  type="number"
-                  value={cuotaMensual}
-                  onChange={(e) => setCuotaMensual(e.target.value)}
-                  placeholder="Ej: 100"
-                  min="1"
-                  step="0.01"
-                  className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-900"
-                />
+          <div className="max-w-md space-y-4">
+            {!clienteSeleccionado ? (
+              <div className="bg-yellow-50 border border-yellow-200 p-4 text-sm text-yellow-800">
+                Seleccione primero el cliente.
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Saldo pendiente actual ($)
-                </label>
-                <input
-                  type="number"
-                  value={saldoPendiente}
-                  onChange={(e) => setSaldoPendiente(e.target.value)}
-                  placeholder="Cuánto falta por cobrar hoy"
-                  min="0"
-                  step="0.01"
-                  className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-900"
-                />
+            ) : cargandoCuenta ? (
+              <p className="text-sm text-gray-500">Revisando cuenta...</p>
+            ) : cuentaCliente ? (
+              <div className="bg-gray-50 border border-gray-200 p-4 text-sm text-gray-600 space-y-1">
+                <p className="font-medium text-gray-900">
+                  {clienteSeleccionado.nombre} ya tiene cuenta abierta
+                </p>
+                <p>
+                  Saldo actual: {formatPrice(cuentaCliente.saldo)} · Cuota{" "}
+                  {formatPrice(cuentaCliente.cuota_mensual)}
+                </p>
+                <p className="pt-2 border-t border-gray-200">
+                  Esta compra se sumará a su cuenta con la fecha indicada.
+                </p>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Día de pago (cada mes)
-                </label>
-                <input
-                  type="number"
-                  value={diaPago}
-                  onChange={(e) => setDiaPago(e.target.value)}
-                  min="1"
-                  max="31"
-                  className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-900"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Fecha de inicio del crédito
-                </label>
-                <input
-                  type="date"
-                  value={fechaInicio}
-                  onChange={(e) => setFechaInicio(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-900"
-                />
-              </div>
-            </div>
-
-            {mesesPlazo > 0 && (
-              <div className="bg-gray-50 p-3 border border-gray-200 text-sm text-gray-600">
-                Plazo estimado: {mesesPlazo}{" "}
-                {mesesPlazo === 1 ? "mes" : "meses"}
-              </div>
-            )}
-
-            {/* Pagos ya realizados */}
-            <div className="border-t border-gray-200 pt-4">
-              <h3 className="text-sm font-medium text-gray-700 mb-3">
-                Pagos ya realizados (opcional)
-              </h3>
-
-              {pagosPrevios.length > 0 && (
-                <div className="mb-3 space-y-2">
-                  {pagosPrevios.map((pago, i) => (
-                    <div
-                      key={i}
-                      className="flex items-center justify-between bg-gray-50 px-3 py-2 text-sm"
-                    >
-                      <span>
-                        {new Date(pago.fecha).toLocaleDateString("es-EC")} —{" "}
-                        {formatPrice(pago.monto)}
-                      </span>
-                      <button
-                        onClick={() => quitarPago(i)}
-                        className="text-red-600 hover:text-red-900 text-xs"
-                      >
-                        Quitar
-                      </button>
-                    </div>
-                  ))}
-                  <p className="text-sm text-gray-600 font-medium">
-                    Total pagado: {formatPrice(totalPagado)}
+            ) : (
+              <>
+                <div className="bg-blue-50 border border-blue-200 p-3 text-sm text-blue-800">
+                  Se abrirá una cuenta nueva para {clienteSeleccionado.nombre}.
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Cuota mensual acordada ($)
+                  </label>
+                  <input
+                    type="number"
+                    value={cuotaMensual}
+                    onChange={(e) => setCuotaMensual(e.target.value)}
+                    placeholder="Ej: 200"
+                    min="1"
+                    step="0.01"
+                    className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-900"
+                  />
+                  {mesesPlazo > 0 && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      Plazo estimado: {mesesPlazo}{" "}
+                      {mesesPlazo === 1 ? "mes" : "meses"}
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Día de pago (cada mes)
+                  </label>
+                  <input
+                    type="number"
+                    value={diaPago}
+                    onChange={(e) => setDiaPago(e.target.value)}
+                    min="1"
+                    max="31"
+                    className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-900"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Fecha del primer pago
+                  </label>
+                  <input
+                    type="date"
+                    value={fechaPrimerPago}
+                    onChange={(e) => setFechaPrimerPago(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-900"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Ponga la fecha real en que empezó a pagar, aunque sea del
+                    pasado
                   </p>
                 </div>
-              )}
+              </>
+            )}
 
-              <div className="flex gap-2">
-                <input
-                  type="date"
-                  value={nuevoPagoFecha}
-                  onChange={(e) => setNuevoPagoFecha(e.target.value)}
-                  className="flex-1 px-3 py-2 border border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-900 text-sm"
-                />
-                <input
-                  type="number"
-                  value={nuevoPagoMonto}
-                  onChange={(e) => setNuevoPagoMonto(e.target.value)}
-                  placeholder="Monto"
-                  min="0"
-                  step="0.01"
-                  className="w-32 px-3 py-2 border border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-900 text-sm"
-                />
-                <button
-                  onClick={agregarPago}
-                  className="px-4 py-2 border border-gray-900 text-gray-900 text-sm uppercase tracking-wider hover:bg-gray-100 transition-colors"
-                >
-                  Agregar
-                </button>
-              </div>
-              <p className="text-xs text-gray-500 mt-2">
-                Registra aquí los pagos que el cliente ya hizo antes de entrar
-                al sistema
-              </p>
+            <div className="bg-gray-50 border border-gray-200 p-3 text-xs text-gray-600">
+              Los pagos que el cliente ya hizo se registran después desde su
+              ficha, con el botón <strong>Agregar movimiento</strong>.
             </div>
           </div>
         )}
       </div>
 
-      {/* CONFIRMAR */}
       <button
         onClick={handleConfirmar}
         disabled={guardando}

@@ -4,8 +4,8 @@ import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { getClienteById } from "@/lib/supabase/clientes";
 import { getVentas } from "@/lib/supabase/ventas";
-import { getCreditosCliente } from "@/lib/supabase/creditos";
 import { formatPrice } from "@/utils/formatters";
+import CuentaCliente from "@/components/admin/CuentaCliente";
 import Link from "next/link";
 import LoadingSpinner from "@/components/shared/LoadingSpinner";
 
@@ -30,13 +30,7 @@ export default function DetalleClientePage({ params }) {
   const { data: ventas = [], isLoading: ventasLoading } = useQuery({
     queryKey: ["ventas-cliente", resolvedParams.id],
     queryFn: () => getVentas({ id_cliente: resolvedParams.id }),
-    staleTime: 1 * 60 * 1000,
-  });
-
-  const { data: creditos = [], isLoading: creditosLoading } = useQuery({
-    queryKey: ["creditos-cliente", resolvedParams.id],
-    queryFn: () => getCreditosCliente(resolvedParams.id),
-    staleTime: 1 * 60 * 1000,
+    staleTime: 60 * 1000,
   });
 
   const formatFecha = (fecha) => {
@@ -48,13 +42,7 @@ export default function DetalleClientePage({ params }) {
     });
   };
 
-  // Totales
   const totalComprado = ventas.reduce((sum, v) => sum + parseFloat(v.total), 0);
-  const creditosActivos = creditos.filter((c) => c.estado === "activo");
-  const saldoPendienteTotal = creditosActivos.reduce(
-    (sum, c) => sum + parseFloat(c.saldo_pendiente),
-    0,
-  );
 
   if (clienteLoading) return <LoadingSpinner />;
   if (!cliente)
@@ -99,117 +87,21 @@ export default function DetalleClientePage({ params }) {
         </div>
       )}
 
-      {/* Resumen */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-        <div className="bg-white border border-gray-200 p-6">
-          <p className="text-gray-500 text-sm uppercase tracking-wider mb-2">
-            Total Comprado
-          </p>
-          <p className="text-3xl font-light text-gray-900">
-            {formatPrice(totalComprado)}
-          </p>
-          <p className="text-xs text-gray-500 mt-1">
-            {ventas.length} {ventas.length === 1 ? "compra" : "compras"}
-          </p>
-        </div>
-        <div className="bg-white border border-gray-200 p-6">
-          <p className="text-gray-500 text-sm uppercase tracking-wider mb-2">
-            Créditos Activos
-          </p>
-          <p className="text-3xl font-light text-gray-900">
-            {creditosActivos.length}
-          </p>
-        </div>
-        <div className="bg-gradient-to-br from-orange-50 to-orange-100 border border-orange-200 p-6">
-          <p className="text-orange-800 text-sm uppercase tracking-wider mb-2 font-medium">
-            Saldo Pendiente
-          </p>
-          <p className="text-3xl font-light text-orange-900">
-            {formatPrice(saldoPendienteTotal)}
-          </p>
-        </div>
-      </div>
-
-      {/* Créditos */}
-      <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-4">
-        Créditos
-      </h2>
-      <div className="bg-white border border-gray-200 overflow-hidden mb-10">
-        {creditosLoading ? (
-          <div className="py-8">
-            <LoadingSpinner />
-          </div>
-        ) : creditos.length === 0 ? (
-          <div className="text-center py-8">
-            <p className="text-gray-500 text-sm">
-              Este cliente no tiene créditos
-            </p>
-          </div>
-        ) : (
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 border-b border-gray-200">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                  Monto
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                  Saldo
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                  Cuota
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                  Estado
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                  Acción
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {creditos.map((credito) => (
-                <tr key={credito.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 text-gray-900">
-                    {formatPrice(credito.monto_total)}
-                  </td>
-                  <td className="px-6 py-4 font-medium text-gray-900">
-                    {formatPrice(credito.saldo_pendiente)}
-                  </td>
-                  <td className="px-6 py-4 text-gray-600">
-                    {formatPrice(credito.cuota_mensual)}
-                  </td>
-                  <td className="px-6 py-4">
-                    <span
-                      className={`px-2 py-1 text-xs uppercase tracking-wider ${
-                        credito.estado === "activo"
-                          ? "bg-green-100 text-green-800"
-                          : credito.estado === "pagado"
-                            ? "bg-gray-100 text-gray-600"
-                            : "bg-red-100 text-red-800"
-                      }`}
-                    >
-                      {credito.estado}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <Link
-                      href={`/admin/creditos/${credito.id}`}
-                      className="text-blue-600 hover:text-blue-900"
-                    >
-                      Ver
-                    </Link>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
+      {/* Cuenta de crédito */}
+      <CuentaCliente cliente={cliente} />
 
       {/* Historial de compras */}
-      <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-4">
-        Historial de Compras
-      </h2>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wider">
+          Historial de Compras
+        </h2>
+        <span className="text-sm text-gray-600">
+          {ventas.length} {ventas.length === 1 ? "compra" : "compras"} ·{" "}
+          <span className="font-medium text-gray-900">
+            {formatPrice(totalComprado)}
+          </span>
+        </span>
+      </div>
       <div className="bg-white border border-gray-200 overflow-hidden">
         {ventasLoading ? (
           <div className="py-8">
@@ -237,9 +129,7 @@ export default function DetalleClientePage({ params }) {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                   Pago
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                  Acción
-                </th>
+                <th className="px-6 py-3"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">

@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabase/client";
 import { buscarClientes, createCliente } from "@/lib/supabase/clientes";
 import { getDistribuidoras } from "@/lib/supabase/distribuidoras";
 import { registrarVenta } from "@/lib/supabase/ventas";
+import { getCuentaPorCliente } from "@/lib/supabase/cuentas";
 import { formatPrice } from "@/utils/formatters";
 import {
   TIPOS_PRODUCTO,
@@ -59,10 +60,33 @@ export default function NuevaVentaPage() {
   const [distribuidoraId, setDistribuidoraId] = useState("");
   const [esCredito, setEsCredito] = useState(false);
   const [cuotaMensual, setCuotaMensual] = useState("");
-  const [mesesGracia, setMesesGracia] = useState(false);
   const [diaPago, setDiaPago] = useState("1");
+  const [fechaPrimerPago, setFechaPrimerPago] = useState("");
+  const [cuentaCliente, setCuentaCliente] = useState(null);
+  const [cargandoCuenta, setCargandoCuenta] = useState(false);
   const [notas, setNotas] = useState("");
   const [guardando, setGuardando] = useState(false);
+
+  // Al seleccionar un cliente, revisar si ya tiene cuenta abierta
+  useEffect(() => {
+    if (!clienteSeleccionado?.id) {
+      setCuentaCliente(null);
+      return;
+    }
+    let cancelado = false;
+    setCargandoCuenta(true);
+    getCuentaPorCliente(clienteSeleccionado.id)
+      .then((c) => {
+        if (!cancelado) setCuentaCliente(c);
+      })
+      .catch((e) => console.error("Error al buscar cuenta:", e))
+      .finally(() => {
+        if (!cancelado) setCargandoCuenta(false);
+      });
+    return () => {
+      cancelado = true;
+    };
+  }, [clienteSeleccionado?.id]);
 
   // Precarga cuando la venta viene de un préstamo (sacar para vender)
   useEffect(() => {
@@ -266,7 +290,11 @@ export default function NuevaVentaPage() {
       alert("Debe seleccionar una distribuidora");
       return;
     }
-    if (esCredito && (!cuotaMensual || parseFloat(cuotaMensual) <= 0)) {
+    if (
+      esCredito &&
+      !cuentaCliente &&
+      (!cuotaMensual || parseFloat(cuotaMensual) <= 0)
+    ) {
       alert("Debe ingresar la cuota mensual");
       return;
     }
@@ -296,14 +324,14 @@ export default function NuevaVentaPage() {
           cantidad: p.cantidad,
           precio_unitario: p.precio_unitario,
         })),
-        credito: esCredito
-          ? {
-              cuota_mensual: parseFloat(cuotaMensual),
-              meses_plazo: mesesPlazo,
-              meses_gracia: mesesGracia ? 3 : 0,
-              dia_pago: parseInt(diaPago) || 1,
-            }
-          : null,
+        credito:
+          esCredito && !cuentaCliente
+            ? {
+                cuota_mensual: parseFloat(cuotaMensual),
+                dia_pago: parseInt(diaPago) || 1,
+                fecha_primer_pago: fechaPrimerPago,
+              }
+            : null,
       });
 
       alert("Venta registrada exitosamente");
@@ -854,67 +882,123 @@ export default function NuevaVentaPage() {
         </div>
 
         {esCredito && (
-          <div className="max-w-sm space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Cuota mensual ($)
-              </label>
-              <input
-                type="number"
-                value={cuotaMensual}
-                onChange={(e) => setCuotaMensual(e.target.value)}
-                placeholder="Ej: 100"
-                min="1"
-                step="0.01"
-                className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-900"
-              />
-            </div>
-
-            {mesesPlazo > 0 && (
-              <div className="bg-gray-50 p-3 border border-gray-200">
-                <p className="text-sm text-gray-600">
-                  Plazo de pago:
-                  <span className="font-medium text-gray-900 ml-2">
-                    {mesesPlazo} {mesesPlazo === 1 ? "mes" : "meses"}
-                  </span>
+          <div className="max-w-md space-y-4">
+            {!clienteSeleccionado ? (
+              <div className="bg-yellow-50 border border-yellow-200 p-4 text-sm text-yellow-800">
+                Seleccione primero el cliente para poder registrar la venta a
+                crédito.
+              </div>
+            ) : cargandoCuenta ? (
+              <p className="text-sm text-gray-500">Revisando cuenta...</p>
+            ) : cuentaCliente ? (
+              // El cliente ya tiene cuenta: solo se suma
+              <div className="bg-gray-50 border border-gray-200 p-4 space-y-2">
+                <p className="text-sm font-medium text-gray-900">
+                  {clienteSeleccionado.nombre} ya tiene cuenta abierta
+                </p>
+                <div className="text-sm text-gray-600 space-y-1">
+                  <p>
+                    Saldo actual:{" "}
+                    <span className="font-medium text-gray-900">
+                      {formatPrice(cuentaCliente.saldo)}
+                    </span>
+                  </p>
+                  <p>
+                    Cuota mensual:{" "}
+                    <span className="font-medium text-gray-900">
+                      {formatPrice(cuentaCliente.cuota_mensual)}
+                    </span>{" "}
+                    · Día {cuentaCliente.dia_pago}
+                  </p>
+                  <p className="pt-2 border-t border-gray-200">
+                    Nuevo saldo tras esta compra:{" "}
+                    <span className="font-medium text-gray-900">
+                      {formatPrice(
+                        parseFloat(cuentaCliente.saldo || 0) + total,
+                      )}
+                    </span>
+                  </p>
+                  {parseFloat(cuentaCliente.cuota_mensual) > 0 && (
+                    <p className="text-xs text-gray-500">
+                      Con la cuota actual quedarían{" "}
+                      {Math.ceil(
+                        (parseFloat(cuentaCliente.saldo || 0) + total) /
+                          parseFloat(cuentaCliente.cuota_mensual),
+                      )}{" "}
+                      meses de pago
+                    </p>
+                  )}
+                </div>
+                <p className="text-xs text-gray-500 pt-2">
+                  La compra se sumará a su cuenta. Si quiere cambiar la cuota,
+                  hágalo desde la ficha del cliente.
                 </p>
               </div>
-            )}
+            ) : (
+              // Cliente sin cuenta: se abre una nueva
+              <>
+                <div className="bg-blue-50 border border-blue-200 p-3 text-sm text-blue-800">
+                  {clienteSeleccionado.nombre} no tiene cuenta. Se le abrirá una
+                  con estos datos.
+                </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Día de pago (cada mes)
-              </label>
-              <input
-                type="number"
-                value={diaPago}
-                onChange={(e) => setDiaPago(e.target.value)}
-                placeholder="Ej: 15"
-                min="1"
-                max="31"
-                className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-900"
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                El cliente pagará cada mes en este día
-              </p>
-            </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Cuota mensual acordada ($)
+                  </label>
+                  <input
+                    type="number"
+                    value={cuotaMensual}
+                    onChange={(e) => setCuotaMensual(e.target.value)}
+                    placeholder="Ej: 200"
+                    min="1"
+                    step="0.01"
+                    className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-900"
+                  />
+                </div>
 
-            <label className="flex items-center gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={mesesGracia}
-                onChange={(e) => setMesesGracia(e.target.checked)}
-                className="w-4 h-4 border-gray-300 text-gray-900 focus:ring-gray-900"
-              />
-              <span className="text-sm font-medium text-gray-700">
-                Aplicar 3 meses de gracia
-              </span>
-            </label>
+                {mesesPlazo > 0 && (
+                  <div className="bg-gray-50 p-3 border border-gray-200">
+                    <p className="text-sm text-gray-600">
+                      Plazo estimado:
+                      <span className="font-medium text-gray-900 ml-2">
+                        {mesesPlazo} {mesesPlazo === 1 ? "mes" : "meses"}
+                      </span>
+                    </p>
+                  </div>
+                )}
 
-            {mesesGracia && (
-              <p className="text-xs text-gray-500">
-                El cliente comenzará a pagar en 3 meses
-              </p>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Día de pago (cada mes)
+                  </label>
+                  <input
+                    type="number"
+                    value={diaPago}
+                    onChange={(e) => setDiaPago(e.target.value)}
+                    placeholder="Ej: 15"
+                    min="1"
+                    max="31"
+                    className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-900"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Fecha del primer pago
+                  </label>
+                  <input
+                    type="date"
+                    value={fechaPrimerPago}
+                    onChange={(e) => setFechaPrimerPago(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-900"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Si le da meses de gracia, ponga aquí el mes en que empieza a
+                    pagar
+                  </p>
+                </div>
+              </>
             )}
           </div>
         )}
@@ -976,7 +1060,9 @@ export default function NuevaVentaPage() {
             <p>
               <span className="font-medium">Forma de pago:</span>{" "}
               {esCredito
-                ? `Crédito - ${mesesPlazo} meses de ${formatPrice(parseFloat(cuotaMensual) || 0)}/mes`
+                ? cuentaCliente
+                  ? `Crédito - se suma a su cuenta (cuota ${formatPrice(cuentaCliente.cuota_mensual)}/mes)`
+                  : `Crédito - cuenta nueva con cuota de ${formatPrice(parseFloat(cuotaMensual) || 0)}/mes`
                 : "Contado"}
             </p>
           </div>

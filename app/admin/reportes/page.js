@@ -334,7 +334,7 @@ export default function ReportesPage() {
 
       {/* CARTERA DE CRÉDITOS */}
       <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-4">
-        Cartera de Créditos — {año}
+        Cartera por Cobrar — {año}
       </h2>
       <div className="bg-white border border-gray-200 p-6 mb-10">
         {carteraLoading ? (

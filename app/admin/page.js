@@ -12,7 +12,7 @@ export default function AdminDashboard() {
     totalConjuntos: 0,
     ventasMes: 0,
     montoMes: 0,
-    creditosActivos: 0,
+    cuentasActivas: 0,
     montoPendiente: 0,
   });
   const [loading, setLoading] = useState(true);
@@ -47,8 +47,7 @@ export default function AdminDashboard() {
         { count: totalClientes },
         { count: totalConjuntos },
         { data: ventasMesData },
-        { count: creditosActivos },
-        { data: creditosPendientes },
+        { data: cuentasData },
       ] = await Promise.all([
         supabase
           .from("productos")
@@ -64,23 +63,18 @@ export default function AdminDashboard() {
           .select("total")
           .gte("fecha", inicioMes)
           .lte("fecha", finMes),
-        supabase
-          .from("creditos")
-          .select("*", { count: "exact", head: true })
-          .eq("estado", "activo"),
-        supabase
-          .from("creditos")
-          .select("saldo_pendiente")
-          .eq("estado", "activo"),
+        supabase.from("cuentas").select("saldo").eq("estado", "activa"),
       ]);
 
       const montoMes =
         ventasMesData?.reduce((sum, v) => sum + parseFloat(v.total), 0) || 0;
-      const montoPendiente =
-        creditosPendientes?.reduce(
-          (sum, c) => sum + parseFloat(c.saldo_pendiente),
-          0,
-        ) || 0;
+      const cuentasConSaldo = (cuentasData || []).filter(
+        (c) => parseFloat(c.saldo) > 0,
+      );
+      const montoPendiente = cuentasConSaldo.reduce(
+        (sum, c) => sum + parseFloat(c.saldo),
+        0,
+      );
 
       setStats({
         totalProductos: totalProductos || 0,
@@ -88,7 +82,7 @@ export default function AdminDashboard() {
         totalConjuntos: totalConjuntos || 0,
         ventasMes: ventasMesData?.length || 0,
         montoMes,
-        creditosActivos: creditosActivos || 0,
+        cuentasActivas: cuentasConSaldo.length,
         montoPendiente,
       });
     } catch (error) {
@@ -214,14 +208,14 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* FILA 3: Créditos */}
+      {/* FILA 3: Cuentas por cobrar */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
         <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 border border-yellow-200 p-6">
           <p className="text-yellow-800 text-sm uppercase tracking-wider mb-2 font-medium">
-            Créditos Activos
+            Cuentas con Saldo
           </p>
           <p className="text-4xl font-light text-yellow-900">
-            {stats.creditosActivos}
+            {stats.cuentasActivas}
           </p>
         </div>
 
