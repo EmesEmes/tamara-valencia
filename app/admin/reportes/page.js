@@ -1,14 +1,16 @@
 "use client";
+import Link from "next/link";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   getVentasPorMes,
-  getVentasPorTipo,
+  getVentasPorViaMes,
   getCarteraPorMes,
   getEgresosMensuales,
   getResumenMes,
   upsertEgreso,
   getReportePorDistribuidora,
+  getComportamientoClientes,
 } from "@/lib/supabase/reportes";
 import {
   BarChart,
@@ -103,9 +105,9 @@ export default function ReportesPage() {
     staleTime: 5 * 60 * 1000,
   });
 
-  const { data: ventasPorTipo = [], isLoading: tipoLoading } = useQuery({
-    queryKey: ["ventas-por-tipo", año],
-    queryFn: () => getVentasPorTipo(año),
+  const { data: ventasPorViaMes = [], isLoading: viaMesLoading } = useQuery({
+    queryKey: ["ventas-por-via-mes", año, mesActual],
+    queryFn: () => getVentasPorViaMes(año, mesActual),
     staleTime: 5 * 60 * 1000,
   });
 
@@ -119,6 +121,12 @@ export default function ReportesPage() {
     queryKey: ["egresos-mensuales", año],
     queryFn: () => getEgresosMensuales(año),
     staleTime: 2 * 60 * 1000,
+  });
+
+  const { data: comportamiento, isLoading: comportamientoLoading } = useQuery({
+    queryKey: ["comportamiento-clientes", año],
+    queryFn: () => getComportamientoClientes(año),
+    staleTime: 5 * 60 * 1000,
   });
 
   const { data: porDistribuidora = [], isLoading: distribuidoraLoading } =
@@ -263,43 +271,49 @@ export default function ReportesPage() {
         )}
       </div>
 
-      {/* VENTAS POR TIPO DE JOYA */}
+      {/* VENTAS POR VÍA DEL MES Y UNIDADES POR MES */}
       <div className="grid md:grid-cols-2 gap-6 mb-10">
         <div>
           <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-4">
-            Unidades Vendidas por Tipo — {año}
+            Ventas por Vía — {MESES[mesActual - 1]} {año}
           </h2>
           <div className="bg-white border border-gray-200 p-6">
-            {tipoLoading ? (
+            {viaMesLoading ? (
               <LoadingSpinner />
-            ) : ventasPorTipo.length === 0 ? (
+            ) : ventasPorViaMes.length === 0 ? (
               <p className="text-gray-500 text-sm text-center py-8">
-                Sin datos
+                Sin ventas este mes
               </p>
             ) : (
               <ResponsiveContainer width="100%" height={280}>
                 <PieChart>
                   <Pie
-                    data={ventasPorTipo}
-                    dataKey="cantidad"
-                    nameKey="tipo"
+                    data={ventasPorViaMes}
+                    dataKey="monto"
+                    nameKey="via"
                     cx="50%"
                     cy="50%"
                     outerRadius={100}
-                    label={({ tipo, percent }) =>
-                      `${tipo} ${(percent * 100).toFixed(0)}%`
+                    label={({ via, percent }) =>
+                      `${VIAS_LABEL[via] || via} ${(percent * 100).toFixed(0)}%`
                     }
                     labelLine={false}
                   >
-                    {ventasPorTipo.map((_, index) => (
+                    {ventasPorViaMes.map((entry, index) => (
                       <Cell
                         key={index}
-                        fill={COLORES_TIPO[index % COLORES_TIPO.length]}
+                        fill={
+                          COLORES_VIA[entry.via] ||
+                          COLORES_TIPO[index % COLORES_TIPO.length]
+                        }
                       />
                     ))}
                   </Pie>
                   <Tooltip
-                    formatter={(value, name) => [value + " unidades", name]}
+                    formatter={(value, name) => [
+                      formatCurrency(value),
+                      VIAS_LABEL[name] || name,
+                    ]}
                   />
                 </PieChart>
               </ResponsiveContainer>
@@ -532,6 +546,192 @@ export default function ReportesPage() {
           </BarChart>
         </ResponsiveContainer>
       </div>
+
+      {/* COMPORTAMIENTO DE CLIENTES */}
+      <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-4">
+        Comportamiento de Clientes
+      </h2>
+
+      {comportamientoLoading ? (
+        <div className="bg-white border border-gray-200 p-6 mb-10">
+          <LoadingSpinner />
+        </div>
+      ) : !comportamiento || comportamiento.resumen.totalClientes === 0 ? (
+        <div className="bg-white border border-gray-200 p-6 mb-10">
+          <p className="text-gray-500 text-sm text-center py-8">
+            Todavía no hay ventas con cliente registrado
+          </p>
+        </div>
+      ) : (
+        <>
+          {/* Indicadores generales */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <div className="bg-white border border-gray-200 p-4">
+              <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">
+                Clientes que compraron
+              </p>
+              <p className="text-2xl font-light text-gray-900">
+                {comportamiento.resumen.totalClientes}
+              </p>
+            </div>
+            <div className="bg-white border border-gray-200 p-4">
+              <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">
+                Compran más de una vez
+              </p>
+              <p className="text-2xl font-light text-gray-900">
+                {comportamiento.resumen.recurrentes}
+              </p>
+              <p className="text-xs text-gray-500">
+                {comportamiento.resumen.unaSolaCompra} compraron una sola vez
+              </p>
+            </div>
+            <div className="bg-white border border-gray-200 p-4">
+              <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">
+                Compra promedio
+              </p>
+              <p className="text-2xl font-light text-gray-900">
+                {formatCurrency(comportamiento.resumen.ticketPromedio)}
+              </p>
+            </div>
+            <div className="bg-white border border-gray-200 p-4">
+              <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">
+                Vuelven a comprar cada
+              </p>
+              <p className="text-2xl font-light text-gray-900">
+                {comportamiento.resumen.frecuenciaPromedio
+                  ? `${comportamiento.resumen.frecuenciaPromedio} días`
+                  : "—"}
+              </p>
+            </div>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-6 mb-6">
+            {/* Mejores clientes */}
+            <div>
+              <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">
+                Mejores Clientes
+              </h3>
+              <div className="bg-white border border-gray-200 overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-50 border-b border-gray-200">
+                    <tr>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase">
+                        Cliente
+                      </th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase">
+                        Compras
+                      </th>
+                      <th className="px-4 py-2 text-right text-xs font-medium text-gray-700 uppercase">
+                        Total
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {comportamiento.topClientes.map((c) => (
+                      <tr key={c.id} className="hover:bg-gray-50">
+                        <td className="px-4 py-2">
+                          <Link
+                            href={`/admin/clientes/${c.id}`}
+                            className="text-gray-900 hover:text-blue-600"
+                          >
+                            {c.nombre}
+                          </Link>
+                          {c.diasEntreCompras && (
+                            <p className="text-xs text-gray-500">
+                              compra cada {c.diasEntreCompras} días
+                            </p>
+                          )}
+                        </td>
+                        <td className="px-4 py-2 text-gray-600">{c.compras}</td>
+                        <td className="px-4 py-2 text-right font-medium text-gray-900">
+                          {formatCurrency(c.totalGastado)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Clientes por reactivar */}
+            <div>
+              <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">
+                Sin Comprar Hace Más de 3 Meses
+              </h3>
+              <div className="bg-white border border-gray-200 overflow-hidden">
+                {comportamiento.inactivos.length === 0 ? (
+                  <p className="text-gray-500 text-sm text-center py-8">
+                    Todos los clientes han comprado recientemente
+                  </p>
+                ) : (
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-50 border-b border-gray-200">
+                      <tr>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase">
+                          Cliente
+                        </th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase">
+                          Sin comprar
+                        </th>
+                        <th className="px-4 py-2 text-right text-xs font-medium text-gray-700 uppercase">
+                          Compró
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {comportamiento.inactivos.map((c) => (
+                        <tr key={c.id} className="hover:bg-gray-50">
+                          <td className="px-4 py-2">
+                            <Link
+                              href={`/admin/clientes/${c.id}`}
+                              className="text-gray-900 hover:text-blue-600"
+                            >
+                              {c.nombre}
+                            </Link>
+                            {c.telefono && (
+                              <p className="text-xs text-gray-500">
+                                {c.telefono}
+                              </p>
+                            )}
+                          </td>
+                          <td className="px-4 py-2 text-gray-600">
+                            {Math.floor(c.diasDesdeUltima / 30)} meses
+                          </td>
+                          <td className="px-4 py-2 text-right text-gray-600">
+                            {formatCurrency(c.totalGastado)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Clientes nuevos vs recurrentes */}
+          <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">
+            Clientes Nuevos vs Recurrentes por Mes — {año}
+          </h3>
+          <div className="bg-white border border-gray-200 p-6 mb-10">
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart data={comportamiento.nuevosVsRecurrentes}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+                <XAxis dataKey="nombre" tick={{ fontSize: 12 }} />
+                <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="nuevos" name="Clientes nuevos" fill="#1f2937" />
+                <Bar
+                  dataKey="recurrentes"
+                  name="Clientes que repiten"
+                  fill="#9ca3af"
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </>
+      )}
 
       {/* EGRESOS MENSUALES */}
       <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-4">

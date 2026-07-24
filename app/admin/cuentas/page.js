@@ -5,6 +5,7 @@ import {
   getCuentas,
   getCobrosDelMes,
   calcularSemaforo,
+  diasDeAtraso,
   resumenCobrosMes,
 } from "@/lib/supabase/cuentas";
 import Link from "next/link";
@@ -28,28 +29,28 @@ const MESES = [
 
 // Estilos del semáforo
 const SEMAFORO = {
-  lejano: {
+  verde: {
     dot: "bg-green-500",
     fila: "",
     texto: "Al día",
     badge: "bg-green-100 text-green-800",
   },
-  proximo: {
+  amarillo: {
     dot: "bg-yellow-500",
     fila: "bg-yellow-50",
-    texto: "Se acerca",
+    texto: "Atrasado",
     badge: "bg-yellow-100 text-yellow-800",
   },
-  hoy: {
+  rojo: {
     dot: "bg-red-500",
     fila: "bg-red-50",
-    texto: "Vence hoy",
+    texto: "Muy atrasado",
     badge: "bg-red-100 text-red-800",
   },
-  vencido: {
+  negro: {
     dot: "bg-gray-900",
     fila: "bg-gray-100",
-    texto: "Vencido",
+    texto: "Crítico",
     badge: "bg-gray-900 text-white",
   },
   pagado: {
@@ -241,7 +242,7 @@ export default function CuentasPage() {
             <tbody className="divide-y divide-gray-200">
               {cobros.map((periodo) => {
                 const sem = calcularSemaforo(periodo);
-                const estilo = SEMAFORO[sem] || SEMAFORO.lejano;
+                const estilo = SEMAFORO[sem] || SEMAFORO.verde;
                 const esperado = parseFloat(periodo.monto_esperado) || 0;
                 const pagado = parseFloat(periodo.monto_pagado) || 0;
                 const falta = Math.max(0, esperado - pagado);
@@ -297,6 +298,13 @@ export default function CuentasPage() {
                       >
                         {estilo.texto}
                       </span>
+                      {!ajustado &&
+                        periodo.estado !== "pagado" &&
+                        diasDeAtraso(periodo) > 0 && (
+                          <p className="text-xs text-gray-500 mt-1">
+                            {diasDeAtraso(periodo)} días de atraso
+                          </p>
+                        )}
                       {periodo.notas && (
                         <p className="text-xs text-gray-500 mt-1">
                           {periodo.notas}
