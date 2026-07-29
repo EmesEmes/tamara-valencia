@@ -1,8 +1,8 @@
 "use client";
-import { use } from "react";
+import { use, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
-import { getVentaById } from "@/lib/supabase/ventas";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { getVentaById, cambiarEstadoVenta } from "@/lib/supabase/ventas";
 import { formatPrice } from "@/utils/formatters";
 import LoadingSpinner from "@/components/shared/LoadingSpinner";
 
@@ -19,6 +19,9 @@ export default function DetalleVentaPage({ params }) {
   const resolvedParams = use(params);
   const router = useRouter();
 
+  const queryClient = useQueryClient();
+  const [cambiandoEstado, setCambiandoEstado] = useState(false);
+
   const { data: venta, isLoading } = useQuery({
     queryKey: ["venta", resolvedParams.id],
     queryFn: () => getVentaById(resolvedParams.id),
@@ -32,6 +35,19 @@ export default function DetalleVentaPage({ params }) {
       hour: "2-digit",
       minute: "2-digit",
     });
+
+  const handleCambiarEstado = async (nuevoEstado) => {
+    setCambiandoEstado(true);
+    try {
+      await cambiarEstadoVenta(resolvedParams.id, nuevoEstado);
+      queryClient.invalidateQueries({ queryKey: ["venta", resolvedParams.id] });
+    } catch (error) {
+      console.error(error);
+      alert("Error al cambiar el estado: " + error.message);
+    } finally {
+      setCambiandoEstado(false);
+    }
+  };
 
   if (isLoading) return <LoadingSpinner />;
   if (!venta)
@@ -101,21 +117,39 @@ export default function DetalleVentaPage({ params }) {
               {venta.es_credito ? "Crédito" : "Contado"}
             </span>
           </div>
-          {venta.comision_monto > 0 && (
-            <div>
-              <p className="text-gray-500 uppercase tracking-wider text-xs mb-1">
-                Comisión
-              </p>
-              <p className="font-medium text-gray-900">
-                {formatPrice(venta.comision_monto)}
-              </p>
-              <span
-                className={`text-xs ${venta.comision_pagada ? "text-green-600" : "text-red-600"}`}
-              >
-                {venta.comision_pagada ? "Pagada" : "Pendiente"}
-              </span>
+          <div>
+            <p className="text-gray-500 uppercase tracking-wider text-xs mb-1">
+              Estado
+            </p>
+            <span
+              className={`px-2 py-1 text-xs uppercase tracking-wider ${
+                venta.estado === "cancelado"
+                  ? "bg-green-100 text-green-800"
+                  : "bg-yellow-100 text-yellow-800"
+              }`}
+            >
+              {venta.estado === "cancelado" ? "Cancelado" : "En proceso"}
+            </span>
+            <div className="mt-2">
+              {venta.estado === "cancelado" ? (
+                <button
+                  onClick={() => handleCambiarEstado("en_proceso")}
+                  disabled={cambiandoEstado}
+                  className="text-xs text-gray-600 hover:text-gray-900 underline"
+                >
+                  Marcar en proceso
+                </button>
+              ) : (
+                <button
+                  onClick={() => handleCambiarEstado("cancelado")}
+                  disabled={cambiandoEstado}
+                  className="text-xs text-blue-600 hover:text-blue-900 underline"
+                >
+                  Marcar cancelado
+                </button>
+              )}
             </div>
-          )}
+          </div>
           {venta.notas && (
             <div className="col-span-2 md:col-span-3">
               <p className="text-gray-500 uppercase tracking-wider text-xs mb-1">

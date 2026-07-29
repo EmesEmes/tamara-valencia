@@ -2,12 +2,12 @@
 import { use, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { getDistribuidoraById } from "@/lib/supabase/distribuidoras";
 import {
-  getDistribuidoraById,
-  getVentasDistribuidora,
-  marcarComisionPagada,
-  marcarTodasComisionesPagadas,
-} from "@/lib/supabase/distribuidoras";
+  getResumenComisiones,
+  marcarComision,
+  liquidarComisiones,
+} from "@/lib/supabase/comisiones";
 import { formatPrice } from "@/utils/formatters";
 import Link from "next/link";
 import LoadingSpinner from "@/components/shared/LoadingSpinner";
@@ -23,64 +23,54 @@ export default function DetalleDistribuidoraPage({ params }) {
     queryFn: () => getDistribuidoraById(resolvedParams.id),
   });
 
-  const { data: ventas = [], isLoading: ventasLoading } = useQuery({
-    queryKey: ["ventas-distribuidora", resolvedParams.id],
-    queryFn: () => getVentasDistribuidora(resolvedParams.id),
-    staleTime: 1 * 60 * 1000,
+  const { data: resumen, isLoading: resumenLoading } = useQuery({
+    queryKey: ["comisiones-distribuidora", resolvedParams.id],
+    queryFn: () => getResumenComisiones(resolvedParams.id),
+    staleTime: 60 * 1000,
   });
 
-  const formatFecha = (fecha) =>
-    new Date(fecha).toLocaleDateString("es-EC", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
+  const comisiones = resumen?.comisiones || [];
+  const hayPorCobrar = comisiones.some((c) => c.estado === "por_cobrar");
+
+  const formatFecha = (fecha) => {
+    if (!fecha) return "-";
+    const [a, m, d] = fecha.split("-");
+    return `${d}/${m}/${a}`;
+  };
+
+  const refrescar = () => {
+    queryClient.invalidateQueries({
+      queryKey: ["comisiones-distribuidora", resolvedParams.id],
     });
+  };
 
-  // Cálculos de comisiones
-  const comisionTotal = ventas.reduce(
-    (sum, v) => sum + (parseFloat(v.comision_monto) || 0),
-    0,
-  );
-  const comisionPagada = ventas
-    .filter((v) => v.comision_pagada)
-    .reduce((sum, v) => sum + (parseFloat(v.comision_monto) || 0), 0);
-  const comisionPendiente = comisionTotal - comisionPagada;
-  const hayPendientes = ventas.some(
-    (v) => !v.comision_pagada && parseFloat(v.comision_monto) > 0,
-  );
-
-  const handleToggleComision = async (idVenta, estadoActual) => {
+  const handleToggle = async (idComision, estadoActual) => {
     setProcesando(true);
     try {
-      await marcarComisionPagada(idVenta, !estadoActual);
-      queryClient.invalidateQueries({
-        queryKey: ["ventas-distribuidora", resolvedParams.id],
-      });
+      await marcarComision(idComision, estadoActual !== "pagada");
+      refrescar();
     } catch (error) {
-      console.error("Error al actualizar comisión:", error);
+      console.error(error);
       alert("Error al actualizar la comisión: " + error.message);
     } finally {
       setProcesando(false);
     }
   };
 
-  const handlePagarTodas = async () => {
+  const handleLiquidarTodo = async () => {
     if (
       !confirm(
-        `¿Marcar todas las comisiones pendientes como pagadas? Total: ${formatPrice(comisionPendiente)}`,
+        `¿Marcar como pagadas todas las comisiones por cobrar? Total: ${formatPrice(resumen?.porCobrar || 0)}`,
       )
     )
       return;
-
     setProcesando(true);
     try {
-      await marcarTodasComisionesPagadas(resolvedParams.id);
-      queryClient.invalidateQueries({
-        queryKey: ["ventas-distribuidora", resolvedParams.id],
-      });
+      await liquidarComisiones(resolvedParams.id);
+      refrescar();
     } catch (error) {
-      console.error("Error al pagar comisiones:", error);
-      alert("Error al pagar las comisiones: " + error.message);
+      console.error(error);
+      alert("Error al liquidar las comisiones: " + error.message);
     } finally {
       setProcesando(false);
     }
@@ -119,14 +109,28 @@ export default function DetalleDistribuidoraPage({ params }) {
         Comisión: {distribuidora.porcentaje_comision}%
       </p>
 
-      {/* Resumen de comisiones */}
+      {/* Las tres cifras de comisión */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <div className="bg-white border border-gray-200 p-6">
           <p className="text-gray-500 text-sm uppercase tracking-wider mb-2">
-            Comisión Total
+            Comisión Pendiente
           </p>
           <p className="text-3xl font-light text-gray-900">
-            {formatPrice(comisionTotal)}
+            {formatPrice(resumen?.pendiente || 0)}
+          </p>
+          <p className="text-xs text-gray-500 mt-1">
+            Se generará cuando sus clientes terminen de pagar
+          </p>
+        </div>
+        <div className="bg-gradient-to-br from-orange-50 to-orange-100 border border-orange-200 p-6">
+          <p className="text-orange-800 text-sm uppercase tracking-wider mb-2 font-medium">
+            Comisión por Cobrar
+          </p>
+          <p className="text-3xl font-light text-orange-900">
+            {formatPrice(resumen?.porCobrar || 0)}
+          </p>
+          <p className="text-xs text-orange-700 mt-1">
+            Ya generada, falta pagársela a la distribuidora
           </p>
         </div>
         <div className="bg-gradient-to-br from-green-50 to-green-100 border border-green-200 p-6">
@@ -134,24 +138,16 @@ export default function DetalleDistribuidoraPage({ params }) {
             Comisión Pagada
           </p>
           <p className="text-3xl font-light text-green-900">
-            {formatPrice(comisionPagada)}
+            {formatPrice(resumen?.pagada || 0)}
           </p>
-        </div>
-        <div className="bg-gradient-to-br from-orange-50 to-orange-100 border border-orange-200 p-6">
-          <p className="text-orange-800 text-sm uppercase tracking-wider mb-2 font-medium">
-            Comisión Pendiente
-          </p>
-          <p className="text-3xl font-light text-orange-900">
-            {formatPrice(comisionPendiente)}
-          </p>
+          <p className="text-xs text-green-700 mt-1">Ya liquidada</p>
         </div>
       </div>
 
-      {/* Botón pagar todas */}
-      {hayPendientes && (
+      {hayPorCobrar && (
         <div className="mb-6">
           <button
-            onClick={handlePagarTodas}
+            onClick={handleLiquidarTodo}
             disabled={procesando}
             className="px-6 py-3 bg-gray-900 text-white text-sm uppercase tracking-wider hover:bg-gray-800 transition-colors disabled:bg-gray-400"
           >
@@ -160,19 +156,20 @@ export default function DetalleDistribuidoraPage({ params }) {
         </div>
       )}
 
-      {/* Ventas de la distribuidora */}
+      {/* Detalle de comisiones generadas */}
       <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-4">
-        Ventas Realizadas
+        Comisiones Generadas
       </h2>
       <div className="bg-white border border-gray-200 overflow-hidden">
-        {ventasLoading ? (
+        {resumenLoading ? (
           <div className="py-12">
             <LoadingSpinner />
           </div>
-        ) : ventas.length === 0 ? (
+        ) : comisiones.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-gray-500">
-              Esta distribuidora no tiene ventas registradas
+              Aún no se han generado comisiones. Se generan cuando los clientes
+              de esta distribuidora pagan.
             </p>
           </div>
         ) : (
@@ -186,59 +183,59 @@ export default function DetalleDistribuidoraPage({ params }) {
                   Cliente
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                  Total venta
+                  Concepto
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-700 uppercase tracking-wider">
+                  Base
+                </th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-700 uppercase tracking-wider">
                   Comisión
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                   Estado
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                  Acción
-                </th>
+                <th className="px-6 py-3"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {ventas.map((venta) => (
-                <tr key={venta.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 text-gray-900">
-                    {formatFecha(venta.fecha)}
-                  </td>
+              {comisiones.map((c) => (
+                <tr key={c.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 text-gray-600">
-                    {venta.cliente?.nombre || "Sin cliente"}
+                    {formatFecha(c.fecha)}
                   </td>
                   <td className="px-6 py-4 text-gray-900">
-                    {formatPrice(venta.total)}
+                    {c.cliente?.nombre || "-"}
                   </td>
-                  <td className="px-6 py-4 font-medium text-gray-900">
-                    {formatPrice(venta.comision_monto || 0)}
+                  <td className="px-6 py-4 text-gray-600">{c.notas || "-"}</td>
+                  <td className="px-6 py-4 text-right text-gray-600">
+                    {formatPrice(c.base)}
+                  </td>
+                  <td className="px-6 py-4 text-right font-medium text-gray-900">
+                    {formatPrice(c.monto)}
                   </td>
                   <td className="px-6 py-4">
                     <span
                       className={`px-2 py-1 text-xs uppercase tracking-wider ${
-                        venta.comision_pagada
+                        c.estado === "pagada"
                           ? "bg-green-100 text-green-800"
                           : "bg-orange-100 text-orange-800"
                       }`}
                     >
-                      {venta.comision_pagada ? "Pagada" : "Pendiente"}
+                      {c.estado === "pagada" ? "Pagada" : "Por cobrar"}
                     </span>
                   </td>
                   <td className="px-6 py-4">
                     <button
-                      onClick={() =>
-                        handleToggleComision(venta.id, venta.comision_pagada)
-                      }
+                      onClick={() => handleToggle(c.id, c.estado)}
                       disabled={procesando}
                       className={`text-sm ${
-                        venta.comision_pagada
+                        c.estado === "pagada"
                           ? "text-gray-500 hover:text-gray-700"
                           : "text-blue-600 hover:text-blue-900"
                       } disabled:opacity-40`}
                     >
-                      {venta.comision_pagada
-                        ? "Marcar pendiente"
+                      {c.estado === "pagada"
+                        ? "Marcar por cobrar"
                         : "Marcar pagada"}
                     </button>
                   </td>
@@ -247,16 +244,6 @@ export default function DetalleDistribuidoraPage({ params }) {
             </tbody>
           </table>
         )}
-      </div>
-
-      {/* Ver detalle de venta */}
-      <div className="mt-4">
-        <Link
-          href="/admin/ventas"
-          className="text-gray-600 hover:text-gray-900 text-sm"
-        >
-          Ver todas las ventas →
-        </Link>
       </div>
     </div>
   );
