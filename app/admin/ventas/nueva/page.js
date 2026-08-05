@@ -1,7 +1,7 @@
 "use client";
 import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase/client";
 import { buscarClientes, createCliente } from "@/lib/supabase/clientes";
 import { getDistribuidoras } from "@/lib/supabase/distribuidoras";
@@ -26,6 +26,7 @@ const VIAS_VENTA = [
 
 export default function NuevaVentaPage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   // --- Estado de búsqueda de productos ---
   const [filtros, setFiltros] = useState({
@@ -335,6 +336,8 @@ export default function NuevaVentaPage() {
       });
 
       alert("Venta registrada exitosamente");
+      queryClient.invalidateQueries({ queryKey: ["ventas"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-productos"] });
       router.push("/admin/ventas");
     } catch (error) {
       console.error("Error al registrar venta:", error);

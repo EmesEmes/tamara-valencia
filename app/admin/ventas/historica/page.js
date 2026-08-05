@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { buscarClientes } from "@/lib/supabase/clientes";
 import { getDistribuidoras } from "@/lib/supabase/distribuidoras";
 import { registrarVentaHistorica } from "@/lib/supabase/ventas";
@@ -19,6 +19,7 @@ const VIAS_VENTA = [
 
 export default function VentaHistoricaPage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   const [fecha, setFecha] = useState("");
   const [total, setTotal] = useState("");
@@ -155,6 +156,7 @@ export default function VentaHistoricaPage() {
       });
 
       alert("Registro histórico guardado exitosamente");
+      queryClient.invalidateQueries({ queryKey: ["ventas"] });
       router.push("/admin/ventas");
     } catch (error) {
       console.error("Error al registrar:", error);

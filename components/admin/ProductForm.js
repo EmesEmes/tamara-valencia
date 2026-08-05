@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase, getFactores } from "@/lib/supabase/client";
 import {
   TIPOS_PRODUCTO,
@@ -11,6 +12,7 @@ import ImageUploader from "./ImageUploader";
 
 export default function ProductForm({ producto = null }) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
   const [conjuntos, setConjuntos] = useState([]);
   const [factores, setFactores] = useState([]);
@@ -196,6 +198,8 @@ export default function ProductForm({ producto = null }) {
           ? "Producto actualizado exitosamente"
           : "Producto creado exitosamente",
       );
+
+      queryClient.invalidateQueries({ queryKey: ["admin-productos"] });
       router.push("/admin/productos");
     } catch (error) {
       console.error("Error al guardar producto:", error);

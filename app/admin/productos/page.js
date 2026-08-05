@@ -74,9 +74,10 @@ export default function ProductosAdminPage() {
         }
       });
       const queryString = params.toString();
-      router.replace(queryString ? `?${queryString}` : "/admin/productos", {
-        scroll: false,
-      });
+      router.replace(
+        queryString ? `/admin/productos?${queryString}` : "/admin/productos",
+        { scroll: false },
+      );
     },
     [router],
   );

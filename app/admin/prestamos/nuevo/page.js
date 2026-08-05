@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase/client";
 import { getDistribuidoras } from "@/lib/supabase/distribuidoras";
 import { registrarPrestamo } from "@/lib/supabase/prestamos";
@@ -14,6 +14,7 @@ import {
 
 export default function NuevoPrestamoPage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   const [distribuidoraId, setDistribuidoraId] = useState("");
   const [notas, setNotas] = useState("");
@@ -169,6 +170,8 @@ export default function NuevoPrestamoPage() {
       });
 
       alert("Préstamo registrado exitosamente");
+      queryClient.invalidateQueries({ queryKey: ["prestamos"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-productos"] });
       router.push("/admin/prestamos");
     } catch (error) {
       console.error("Error al registrar préstamo:", error);

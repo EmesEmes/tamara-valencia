@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   getClienteById,
   createCliente,
@@ -10,6 +11,7 @@ import { getDistribuidoras } from "@/lib/supabase/distribuidoras";
 
 export default function ClienteForm({ clienteId = null }) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
   const [distribuidoras, setDistribuidoras] = useState([]);
   const [formData, setFormData] = useState({
@@ -78,6 +80,7 @@ export default function ClienteForm({ clienteId = null }) {
         await createCliente(formData);
         alert("Cliente creado exitosamente");
       }
+      queryClient.invalidateQueries({ queryKey: ["clientes-admin"] });
       router.push("/admin/clientes");
     } catch (error) {
       console.error("Error al guardar cliente:", error);
