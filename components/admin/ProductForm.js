@@ -200,7 +200,7 @@ export default function ProductForm({ producto = null }) {
       );
 
       queryClient.invalidateQueries({ queryKey: ["admin-productos"] });
-      router.push("/admin/productos");
+      router.back();
     } catch (error) {
       console.error("Error al guardar producto:", error);
       alert("Error al guardar el producto: " + error.message);
@@ -478,7 +478,7 @@ export default function ProductForm({ producto = null }) {
       <div className="flex justify-end space-x-4">
         <button
           type="button"
-          onClick={() => router.push("/admin/productos")}
+          onClick={() => router.back()}
           className="px-6 py-3 border border-gray-300 text-gray-700 text-sm uppercase tracking-wider hover:bg-gray-50 transition-colors"
         >
           Cancelar
