@@ -55,7 +55,7 @@ export default function ProductCard({ producto }) {
           <>
             <Image
               src={producto.imagen_url}
-              alt={producto.nombre_comercial}
+              alt={`${producto.nombre_comercial} de ${producto.material} - Tamara Valencia Joyas, Quito`}
               fill
               className="object-cover group-hover:scale-110 transition-transform duration-500"
               sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"

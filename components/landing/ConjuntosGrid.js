@@ -83,8 +83,9 @@ export default function ConjuntosGrid() {
           </h2>
           <div className="w-24 h-px bg-gray-300 mx-auto mb-6"></div>
           <p className="text-lg text-gray-600 font-light max-w-2xl mx-auto">
-            Descubre nuestros juegos exclusivos de joyería, cada uno escogido
-            para complementar tu estilo único
+            Descubre nuestras colecciones exclusivas de anillos, aretes,
+            collares y pulseras en oro y plata, cada pieza escogida para
+            complementar tu estilo único
           </p>
         </div>
 
@@ -99,7 +100,7 @@ export default function ConjuntosGrid() {
                 {conjunto.imagen_url ? (
                   <Image
                     src={conjunto.imagen_url}
-                    alt={conjunto.nombre}
+                    alt={`Colección ${conjunto.nombre} - Tamara Valencia Joyas, Quito`}
                     fill
                     className="object-cover group-hover:scale-105 transition-transform duration-500"
                     sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"

@@ -7,33 +7,43 @@ export default function About() {
             <h2 className="font-elegant text-5xl font-light text-gray-900 mb-6 font-biloxi">
               Sobre Nosotros
             </h2>
-            
+
             <div className="w-16 h-px bg-[#FFF2E0]"></div>
-            
+
             <p className="text-lg text-gray-600 leading-relaxed font-light">
-              En Tamara Valencia Joyas, cada pieza es una obra de arte cuidadosamente escogida 
-              para expresar tu esencia única. Combinamos técnicas tradicionales con 
-              diseños contemporáneos para ofrecerte joyas excepcionales.
+              En Tamara Valencia Joyas, con sede en Quito, Ecuador, cada pieza
+              es una obra de arte cuidadosamente escogida para expresar tu
+              esencia única. Combinamos técnicas tradicionales con diseños
+              contemporáneos para ofrecerte joyas excepcionales.
             </p>
-            
+
             <p className="text-lg text-gray-600 leading-relaxed font-light">
-              Trabajamos con los mejores materiales: oro, plata, perlas cultivadas 
-              y piedras seleccionadas, garantizando la calidad y durabilidad de cada 
-              creación.
+              Trabajamos con los mejores materiales: oro, plata, perlas
+              cultivadas y piedras seleccionadas, garantizando la calidad y
+              durabilidad de cada creación.
             </p>
 
             <div className="grid grid-cols-3 gap-8 pt-8">
               <div className="text-center">
                 <p className="text-4xl font-light text-gray-900 mb-2">100%</p>
-                <p className="text-sm text-gray-500 uppercase tracking-wider">Calidad</p>
+                <p className="text-sm text-gray-500 uppercase tracking-wider">
+                  Calidad
+                </p>
               </div>
               <div className="text-center">
                 <p className="text-4xl font-light text-gray-900 mb-2">+500</p>
-                <p className="text-sm text-gray-500 uppercase tracking-wider">Diseños</p>
+                <p className="text-sm text-gray-500 uppercase tracking-wider">
+                  Diseños
+                </p>
               </div>
               <div className="text-center">
-                <p className="text-4xl font-light text-gray-900 mb-2">+10 Años</p>
-                <p className="text-sm text-gray-500 uppercase tracking-wider"> de Experiencia</p>
+                <p className="text-4xl font-light text-gray-900 mb-2">
+                  +10 Años
+                </p>
+                <p className="text-sm text-gray-500 uppercase tracking-wider">
+                  {" "}
+                  de Experiencia
+                </p>
               </div>
             </div>
           </div>

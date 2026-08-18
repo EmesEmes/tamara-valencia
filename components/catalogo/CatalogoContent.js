@@ -100,7 +100,10 @@ export default function CatalogoContent() {
         <h1 className="font-elegant text-5xl md:text-6xl font-light text-gray-900 mb-4">
           Catálogo
         </h1>
-        <div className="w-24 h-px bg-gray-300 mx-auto"></div>
+        <div className="w-24 h-px bg-gray-300 mx-auto mb-4"></div>
+        <p className="text-sm text-gray-500 tracking-wide uppercase">
+          Joyería en oro, plata y perlas cultivadas · Quito, Ecuador
+        </p>
       </div>
 
       <Filters

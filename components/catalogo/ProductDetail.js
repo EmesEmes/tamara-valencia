@@ -107,7 +107,7 @@ export default function ProductDetail({ productId }) {
           {producto.imagen_url ? (
             <Image
               src={producto.imagen_url}
-              alt={producto.nombre_comercial}
+              alt={`${producto.nombre_comercial} de ${producto.material} - Tamara Valencia Joyas, Quito`}
               fill
               className="object-cover"
               priority
@@ -188,14 +188,13 @@ export default function ProductDetail({ productId }) {
             </p>
           </div>
 
-          {producto.descripcion && (
-            <div className="pt-6 border-t border-gray-200">
-              <h3 className="font-medium text-gray-900 mb-2">Descripción</h3>
-              <p className="text-gray-600 leading-relaxed font-light">
-                {producto.descripcion}
-              </p>
-            </div>
-          )}
+          <div className="pt-6 border-t border-gray-200">
+            <h3 className="font-medium text-gray-900 mb-2">Descripción</h3>
+            <p className="text-gray-600 leading-relaxed font-light">
+              {producto.descripcion ||
+                `${producto.nombre_comercial} de ${producto.material}, parte de nuestra colección disponible en Quito, Ecuador. Envíos a todo el país.`}
+            </p>
+          </div>
 
           {/* Botones de acción */}
           {(() => {

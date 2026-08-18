@@ -25,10 +25,10 @@ export async function generateMetadata({ params }) {
     const precioFinal = redondearPrecio(calcularPrecio(producto));
 
     return {
-      title: `${producto.nombre_comercial}`,
+      title: `${producto.nombre_comercial} | Quito, Ecuador`,
       description:
         producto.descripcion ||
-        `${producto.nombre_comercial} - ${producto.categoria} - ${producto.material}`,
+        `${producto.nombre_comercial} en ${producto.material}, disponible en Tamara Valencia Joyas, Quito, Ecuador.`,
       openGraph: {
         title: `${producto.nombre_comercial}`,
         description: `${producto.descripcion}`,
@@ -53,16 +53,18 @@ export async function generateMetadata({ params }) {
   } catch (error) {
     console.error("Error generating metadata:", error);
     return {
-      title: "Producto | Tamara Valencia",
-      description: "Joyería fina y elegante",
+      title: "Producto | Tamara Valencia Joyas, Quito",
+      description: "Joyería fina y elegante en Quito, Ecuador.",
     };
   }
 }
 
 export default async function ProductoDetallePage({ params }) {
   const { id } = await params;
+  const SITE_URL = "https://www.tamaravalenciajoyas.com";
 
   let structuredData = null;
+  let breadcrumbData = null;
   try {
     const producto = await getProductoById(id);
     const precioFinal = redondearPrecio(calcularPrecio(producto));
@@ -73,7 +75,7 @@ export default async function ProductoDetallePage({ params }) {
       name: producto.nombre_comercial,
       description:
         producto.descripcion ||
-        `${producto.nombre_comercial} - ${producto.categoria} - ${producto.material}`,
+        `${producto.nombre_comercial} en ${producto.material}, disponible en Tamara Valencia Joyas, Quito, Ecuador.`,
       image: producto.imagen_url || undefined,
       sku: producto.codigo,
       category: producto.categoria,
@@ -86,8 +88,35 @@ export default async function ProductoDetallePage({ params }) {
           producto.stock > 0
             ? "https://schema.org/InStock"
             : "https://schema.org/OutOfStock",
-        url: `https://www.tamaravalenciajoyas.com/catalogo/${id}`,
+        url: `${SITE_URL}/catalogo/${id}`,
       },
+    };
+
+    // Le indica a Google la ruta jerárquica de la página
+    // (a veces la muestra directamente en el resultado de búsqueda)
+    breadcrumbData = {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      itemListElement: [
+        {
+          "@type": "ListItem",
+          position: 1,
+          name: "Inicio",
+          item: SITE_URL,
+        },
+        {
+          "@type": "ListItem",
+          position: 2,
+          name: "Catálogo",
+          item: `${SITE_URL}/catalogo`,
+        },
+        {
+          "@type": "ListItem",
+          position: 3,
+          name: producto.nombre_comercial,
+          item: `${SITE_URL}/catalogo/${id}`,
+        },
+      ],
     };
   } catch (error) {
     console.error("Error generando structured data del producto:", error);
@@ -99,6 +128,12 @@ export default async function ProductoDetallePage({ params }) {
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+        />
+      )}
+      {breadcrumbData && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbData) }}
         />
       )}
       <Navbar />

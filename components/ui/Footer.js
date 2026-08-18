@@ -51,6 +51,14 @@ export default function Footer() {
                   Contacto
                 </a>
               </li>
+              <li>
+                <Link
+                  href="/politica-devoluciones"
+                  className="text-gray-400 hover:text-white text-sm transition-colors"
+                >
+                  Garantía y Devoluciones
+                </Link>
+              </li>
             </ul>
           </div>
 
