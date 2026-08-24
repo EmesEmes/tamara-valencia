@@ -125,6 +125,10 @@ export default function CuentaCliente({ cliente }) {
           queryClient.invalidateQueries({
             queryKey: ["cuenta-cliente", cliente.id],
           });
+          // La pantalla de "Cuentas por Cobrar" cachea los resultados por
+          // mes; si aquí se acaban de generar meses nuevos, hay que avisarle
+          // para que no se quede mostrando "no hay nada" desde antes.
+          queryClient.invalidateQueries({ queryKey: ["cobros-mes"] });
         })
         .catch((e) => console.error("Error al preparar la cuenta:", e));
     }
