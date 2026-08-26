@@ -3,7 +3,6 @@ import Footer from "@/components/ui/Footer";
 import ProductDetail from "@/components/catalogo/ProductDetail";
 import { getProductoById } from "@/lib/supabase/client";
 
-// Función para calcular precio (igual que en ProductDetail)
 const calcularPrecio = (prod) => {
   if (!prod.peso || !prod.factor || !prod.factor.valor) return 0;
   return parseFloat(prod.peso) * parseFloat(prod.factor.valor);
@@ -14,15 +13,20 @@ const redondearPrecio = (precio) => {
   return Math.ceil(precio / 5) * 5;
 };
 
-// Esta función genera los meta tags dinámicos para WhatsApp/Facebook/Twitter
 export async function generateMetadata({ params }) {
-  const { id } = await params; // Cambié esto - usar await en lugar de use()
-
   try {
     const producto = await getProductoById(id);
-
-    // Calcular precio
     const precioFinal = redondearPrecio(calcularPrecio(producto));
+    const imagenesOG = producto.imagen_url
+      ? [
+          {
+            url: producto.imagen_url,
+            width: 800,
+            height: 800,
+            alt: producto.nombre_comercial,
+          },
+        ]
+      : undefined;
 
     return {
       title: `${producto.nombre_comercial} | Quito, Ecuador`,
@@ -31,15 +35,10 @@ export async function generateMetadata({ params }) {
         `${producto.nombre_comercial} en ${producto.material}, disponible en Tamara Valencia Joyas, Quito, Ecuador.`,
       openGraph: {
         title: `${producto.nombre_comercial}`,
-        description: `${producto.descripcion}`,
-        images: [
-          {
-            url: producto.imagen_url,
-            width: 1200,
-            height: 630,
-            alt: producto.nombre_comercial,
-          },
-        ],
+        description:
+          producto.descripcion ||
+          `${producto.nombre_comercial} en ${producto.material}, disponible en Tamara Valencia Joyas, Quito, Ecuador.`,
+        images: imagenesOG,
         type: "website",
         siteName: "Tamara Valencia Joyas",
       },
@@ -47,7 +46,7 @@ export async function generateMetadata({ params }) {
         card: "summary_large_image",
         title: `${producto.nombre_comercial}`,
         description: `${producto.categoria} de ${producto.material} - Precio: $${precioFinal}`,
-        images: [producto.imagen_url],
+        images: producto.imagen_url ? [producto.imagen_url] : undefined,
       },
     };
   } catch (error) {
@@ -92,8 +91,6 @@ export default async function ProductoDetallePage({ params }) {
       },
     };
 
-    // Le indica a Google la ruta jerárquica de la página
-    // (a veces la muestra directamente en el resultado de búsqueda)
     breadcrumbData = {
       "@context": "https://schema.org",
       "@type": "BreadcrumbList",
