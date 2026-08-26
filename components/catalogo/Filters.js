@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   TIPOS_PRODUCTO,
@@ -8,13 +8,24 @@ import {
 } from "@/lib/constants";
 import { getConjuntos } from "@/lib/supabase/client";
 
+const FILTROS_VACIOS = {
+  tipo: "",
+  categoria: "",
+  material: "",
+  conjunto: "",
+  codigo: "",
+  precioMin: "",
+  precioMax: "",
+};
+
 export default function Filters({ filters, onFilterChange, onClearFilters }) {
   const [localFilters, setLocalFilters] = useState({
+    ...FILTROS_VACIOS,
     ...filters,
-    codigo: filters.codigo || "",
   });
-  const isFirstRender = useRef(true);
-  const previousFilters = useRef(filters);
+  useEffect(() => {
+    setLocalFilters({ ...FILTROS_VACIOS, ...filters });
+  }, [filters]);
 
   const { data: conjuntos = [] } = useQuery({
     queryKey: ["conjuntos"],
@@ -22,54 +33,26 @@ export default function Filters({ filters, onFilterChange, onClearFilters }) {
     staleTime: 10 * 60 * 1000,
   });
 
-  // Debounce para precios y código
-  useEffect(() => {
-    if (isFirstRender.current) {
-      isFirstRender.current = false;
-      previousFilters.current = localFilters;
-      return;
-    }
-
-    const filtersChanged =
-      localFilters.precioMin !== previousFilters.current.precioMin ||
-      localFilters.precioMax !== previousFilters.current.precioMax ||
-      localFilters.codigo !== previousFilters.current.codigo;
-
-    if (!filtersChanged) return;
-
-    const timeoutId = setTimeout(() => {
-      onFilterChange(localFilters);
-      previousFilters.current = localFilters;
-    }, 1200);
-
-    return () => clearTimeout(timeoutId);
-  }, [
-    localFilters.precioMin,
-    localFilters.precioMax,
-    localFilters.codigo,
-    localFilters,
-    onFilterChange,
-  ]);
-
-  useEffect(() => {
-    setLocalFilters({ ...filters, codigo: filters.codigo || "" });
-    previousFilters.current = filters;
-  }, [filters]);
-
   const handleChange = (e) => {
     const { name, value } = e.target;
-    const newFilters = { ...localFilters, [name]: value };
-    setLocalFilters(newFilters);
+    setLocalFilters((prev) => ({ ...prev, [name]: value }));
+  };
 
-    // Selects aplican inmediatamente, precios y código tienen debounce
-    if (name !== "precioMin" && name !== "precioMax" && name !== "codigo") {
-      onFilterChange(newFilters);
-      previousFilters.current = newFilters;
-    }
+  const handleBuscar = () => {
+    onFilterChange(localFilters);
+  };
+
+  const handleEnterKey = (e) => {
+    if (e.key === "Enter") handleBuscar();
+  };
+
+  const handleLimpiar = () => {
+    setLocalFilters(FILTROS_VACIOS);
+    onClearFilters();
   };
 
   const hasActiveFilters = Object.values(localFilters).some(
-    (value) => value !== "",
+    (value) => value !== "" && value != null,
   );
 
   return (
@@ -154,7 +137,7 @@ export default function Filters({ filters, onFilterChange, onClearFilters }) {
       </div>
 
       {/* Fila 2: Código y Precios */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
         <div>
           <label className="block text-sm font-light text-gray-700 mb-2 uppercase tracking-wider">
             Buscar por Código
@@ -164,6 +147,7 @@ export default function Filters({ filters, onFilterChange, onClearFilters }) {
             name="codigo"
             value={localFilters.codigo}
             onChange={handleChange}
+            onKeyDown={handleEnterKey}
             placeholder="Ej: OANP, MA..."
             className="w-full px-4 py-2 border border-gray-300 bg-white focus:outline-none focus:border-gray-500 text-sm"
           />
@@ -178,6 +162,7 @@ export default function Filters({ filters, onFilterChange, onClearFilters }) {
             name="precioMin"
             value={localFilters.precioMin}
             onChange={handleChange}
+            onKeyDown={handleEnterKey}
             placeholder="$0"
             min="0"
             className="w-full px-4 py-2 border border-gray-300 bg-white focus:outline-none focus:border-gray-500 text-sm"
@@ -193,6 +178,7 @@ export default function Filters({ filters, onFilterChange, onClearFilters }) {
             name="precioMax"
             value={localFilters.precioMax}
             onChange={handleChange}
+            onKeyDown={handleEnterKey}
             placeholder="$9999"
             min="0"
             className="w-full px-4 py-2 border border-gray-300 bg-white focus:outline-none focus:border-gray-500 text-sm"
@@ -200,16 +186,24 @@ export default function Filters({ filters, onFilterChange, onClearFilters }) {
         </div>
       </div>
 
-      {hasActiveFilters && (
-        <div className="mt-4 text-center">
+      {/* Botón de búsqueda */}
+      <div className="flex flex-col items-center gap-3">
+        <button
+          onClick={handleBuscar}
+          className="w-full md:w-auto px-12 py-3 bg-gray-900 text-white text-sm uppercase tracking-widest hover:bg-gray-800 transition-colors"
+        >
+          Buscar
+        </button>
+
+        {hasActiveFilters && (
           <button
-            onClick={onClearFilters}
+            onClick={handleLimpiar}
             className="text-sm text-gray-600 hover:text-gray-900 uppercase tracking-wider underline"
           >
             Limpiar Filtros
           </button>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
