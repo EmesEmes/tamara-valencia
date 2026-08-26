@@ -51,6 +51,14 @@ const TIPO_MOV = {
   saldo_inicial: { texto: "Saldo inicial", cls: "text-gray-900" },
 };
 
+// Evita que se escriban más de 2 decimales en los campos de dinero.
+// step="0.01" en un <input type="number"> solo afecta las flechitas,
+// no impide teclear manualmente algo como "123123.123123".
+const limitarDecimales = (valor) => {
+  if (valor === "") return valor;
+  return /^\d*\.?\d{0,2}$/.test(valor) ? valor : valor.slice(0, -1);
+};
+
 export default function CuentaCliente({ cliente }) {
   const queryClient = useQueryClient();
   const [procesando, setProcesando] = useState(false);
@@ -318,7 +326,7 @@ export default function CuentaCliente({ cliente }) {
               onChange={(e) =>
                 setFormApertura((p) => ({
                   ...p,
-                  cuota_mensual: e.target.value,
+                  cuota_mensual: limitarDecimales(e.target.value),
                 }))
               }
               placeholder="Ej: 200"
@@ -371,7 +379,7 @@ export default function CuentaCliente({ cliente }) {
               onChange={(e) =>
                 setFormApertura((p) => ({
                   ...p,
-                  saldo_inicial: e.target.value,
+                  saldo_inicial: limitarDecimales(e.target.value),
                 }))
               }
               placeholder="Si ya le debe de antes"
@@ -711,7 +719,10 @@ export default function CuentaCliente({ cliente }) {
                       type="number"
                       value={formPago.monto}
                       onChange={(e) =>
-                        setFormPago((p) => ({ ...p, monto: e.target.value }))
+                        setFormPago((p) => ({
+                          ...p,
+                          monto: limitarDecimales(e.target.value),
+                        }))
                       }
                       placeholder={`Cuota: ${formatPrice(cuota)}`}
                       min="0.01"
@@ -788,7 +799,10 @@ export default function CuentaCliente({ cliente }) {
                       type="number"
                       value={formCuota.nueva}
                       onChange={(e) =>
-                        setFormCuota((p) => ({ ...p, nueva: e.target.value }))
+                        setFormCuota((p) => ({
+                          ...p,
+                          nueva: limitarDecimales(e.target.value),
+                        }))
                       }
                       min="0.01"
                       step="0.01"
@@ -912,7 +926,10 @@ export default function CuentaCliente({ cliente }) {
                       type="number"
                       value={formMov.monto}
                       onChange={(e) =>
-                        setFormMov((p) => ({ ...p, monto: e.target.value }))
+                        setFormMov((p) => ({
+                          ...p,
+                          monto: limitarDecimales(e.target.value),
+                        }))
                       }
                       min="0.01"
                       step="0.01"

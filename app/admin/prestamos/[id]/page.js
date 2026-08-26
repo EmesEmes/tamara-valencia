@@ -6,8 +6,12 @@ import {
   getPrestamoById,
   procesarItemsPrestamo,
   devolverTodo,
+  agregarJoyaAPrestamo,
+  quitarJoyaDePrestamo,
 } from "@/lib/supabase/prestamos";
+import { supabase } from "@/lib/supabase/client";
 import { formatPrice } from "@/utils/formatters";
+import { descargarPrestamoPDF } from "@/lib/pdf/prestamo";
 import LoadingSpinner from "@/components/shared/LoadingSpinner";
 
 export default function DetallePrestamoPage({ params }) {
@@ -17,6 +21,13 @@ export default function DetallePrestamoPage({ params }) {
 
   const [seleccionados, setSeleccionados] = useState([]);
   const [procesando, setProcesando] = useState(false);
+
+  // Modal de agregar joya olvidada
+  const [modalAgregar, setModalAgregar] = useState(false);
+  const [buscandoJoya, setBuscandoJoya] = useState(false);
+  const [codigoBusqueda, setCodigoBusqueda] = useState("");
+  const [resultadosBusqueda, setResultadosBusqueda] = useState([]);
+  const [busquedaHecha, setBusquedaHecha] = useState(false);
 
   const { data: prestamo, isLoading } = useQuery({
     queryKey: ["prestamo", resolvedParams.id],
@@ -43,6 +54,16 @@ export default function DetallePrestamoPage({ params }) {
   // Solo los items que siguen prestados se pueden seleccionar
   const itemsPrestados =
     prestamo?.detalle?.filter((d) => d.estado_item === "prestado") || [];
+
+  // Resumen: cuántas unidades y cuánto valen las joyas que siguen prestadas
+  const cantidadPrestada = itemsPrestados.reduce(
+    (sum, item) => sum + item.cantidad,
+    0,
+  );
+  const valorTotalPrestado = itemsPrestados.reduce(
+    (sum, item) => sum + calcularPrecio(item.producto) * item.cantidad,
+    0,
+  );
 
   const toggleSeleccion = (itemId) => {
     setSeleccionados((prev) =>
@@ -165,6 +186,94 @@ export default function DetallePrestamoPage({ params }) {
     }
   };
 
+  const handleDescargarPDF = async () => {
+    try {
+      await descargarPrestamoPDF(prestamo);
+    } catch (error) {
+      console.error("Error al generar el PDF:", error);
+      alert(
+        "Error al generar el PDF. Verifique que estén instaladas las librerías (npm install jspdf jspdf-autotable)",
+      );
+    }
+  };
+
+  const refrescarPrestamo = () => {
+    queryClient.invalidateQueries({
+      queryKey: ["prestamo", resolvedParams.id],
+    });
+    queryClient.invalidateQueries({ queryKey: ["admin-productos"] });
+  };
+
+  const handleBuscarJoya = async () => {
+    if (!codigoBusqueda.trim()) return;
+    setBuscandoJoya(true);
+    setBusquedaHecha(true);
+    try {
+      const { data, error } = await supabase
+        .from("productos")
+        .select("*, factor:factores(*)")
+        .eq("activo", true)
+        .gt("stock", 0)
+        .or(
+          `codigo.ilike.%${codigoBusqueda}%,nombre_comercial.ilike.%${codigoBusqueda}%`,
+        )
+        .limit(20);
+      if (error) throw error;
+      setResultadosBusqueda(data || []);
+    } catch (error) {
+      console.error("Error al buscar producto:", error);
+      alert("Error al buscar el producto");
+    } finally {
+      setBuscandoJoya(false);
+    }
+  };
+
+  const handleAgregarJoya = async (producto) => {
+    if (
+      !confirm(
+        `¿Agregar "${producto.nombre_comercial}" (${producto.codigo}) a este préstamo? Se descontará 1 unidad del stock.`,
+      )
+    )
+      return;
+
+    setProcesando(true);
+    try {
+      await agregarJoyaAPrestamo(resolvedParams.id, producto.id, 1);
+      refrescarPrestamo();
+      setModalAgregar(false);
+      setCodigoBusqueda("");
+      setResultadosBusqueda([]);
+      setBusquedaHecha(false);
+      alert("Joya agregada al préstamo");
+    } catch (error) {
+      console.error("Error al agregar la joya:", error);
+      alert("Error al agregar la joya: " + error.message);
+    } finally {
+      setProcesando(false);
+    }
+  };
+
+  const handleQuitarJoya = async (itemId, nombreJoya) => {
+    if (
+      !confirm(
+        `¿Quitar "${nombreJoya}" de este préstamo? Se usa cuando se agregó por error y nunca salió físicamente. El stock vuelve al inventario.`,
+      )
+    )
+      return;
+
+    setProcesando(true);
+    try {
+      await quitarJoyaDePrestamo(itemId);
+      refrescarPrestamo();
+      setSeleccionados((prev) => prev.filter((id) => id !== itemId));
+    } catch (error) {
+      console.error("Error al quitar la joya:", error);
+      alert("Error al quitar la joya: " + error.message);
+    } finally {
+      setProcesando(false);
+    }
+  };
+
   if (isLoading) return <LoadingSpinner />;
   if (!prestamo)
     return (
@@ -190,13 +299,31 @@ export default function DetallePrestamoPage({ params }) {
         </button>
       </div>
 
-      <h1 className="font-elegant text-4xl font-light text-gray-900 mb-8">
-        Detalle del Préstamo
-      </h1>
+      <div className="flex items-center justify-between mb-8">
+        <h1 className="font-elegant text-4xl font-light text-gray-900">
+          Detalle del Préstamo
+        </h1>
+        <div className="flex items-center gap-4">
+          {prestamo.estado === "activo" && (
+            <button
+              onClick={() => setModalAgregar(true)}
+              className="text-sm text-gray-700 hover:text-gray-900 underline"
+            >
+              + Agregar joya al préstamo
+            </button>
+          )}
+          <button
+            onClick={handleDescargarPDF}
+            className="text-sm text-blue-600 hover:text-blue-900"
+          >
+            Descargar PDF
+          </button>
+        </div>
+      </div>
 
       {/* Info de la distribuidora */}
       <div className="bg-white border border-gray-200 p-6 mb-6">
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-6 text-sm">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-6 text-sm">
           <div>
             <p className="text-gray-500 uppercase tracking-wider text-xs mb-1">
               Distribuidora
@@ -230,8 +357,22 @@ export default function DetallePrestamoPage({ params }) {
               {prestamo.estado}
             </span>
           </div>
+          <div>
+            <p className="text-gray-500 uppercase tracking-wider text-xs mb-1">
+              Joyas Prestadas
+            </p>
+            <p className="font-medium text-gray-900">{cantidadPrestada}</p>
+          </div>
+          <div>
+            <p className="text-gray-500 uppercase tracking-wider text-xs mb-1">
+              Valor Total
+            </p>
+            <p className="font-medium text-gray-900">
+              {formatPrice(valorTotalPrestado)}
+            </p>
+          </div>
           {prestamo.notas && (
-            <div className="col-span-2 md:col-span-3">
+            <div className="col-span-2 md:col-span-5">
               <p className="text-gray-500 uppercase tracking-wider text-xs mb-1">
                 Notas
               </p>
@@ -295,14 +436,21 @@ export default function DetallePrestamoPage({ params }) {
                 Código
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">
-                Joya
+                Descripción
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">
+                Material
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">
                 Cantidad
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">
+                Precio
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">
                 Estado
               </th>
+              <th className="px-4 py-3"></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -324,9 +472,16 @@ export default function DetallePrestamoPage({ params }) {
                     {item.producto?.codigo}
                   </td>
                   <td className="px-4 py-3 text-gray-900">
-                    {item.producto?.nombre_comercial}
+                    {item.producto?.descripcion ||
+                      item.producto?.nombre_comercial}
+                  </td>
+                  <td className="px-4 py-3 text-gray-600 capitalize">
+                    {item.producto?.material}
                   </td>
                   <td className="px-4 py-3 text-gray-600">{item.cantidad}</td>
+                  <td className="px-4 py-3 text-gray-900 font-medium">
+                    {formatPrice(calcularPrecio(item.producto))}
+                  </td>
                   <td className="px-4 py-3">
                     <span
                       className={`px-2 py-1 text-xs uppercase tracking-wider ${estadoLabel[item.estado_item].cls}`}
@@ -334,12 +489,108 @@ export default function DetallePrestamoPage({ params }) {
                       {estadoLabel[item.estado_item].text}
                     </span>
                   </td>
+                  <td className="px-4 py-3">
+                    {esPrestado && (
+                      <button
+                        onClick={() =>
+                          handleQuitarJoya(
+                            item.id,
+                            item.producto?.nombre_comercial,
+                          )
+                        }
+                        disabled={procesando}
+                        className="text-xs text-red-600 hover:text-red-900 disabled:opacity-40"
+                      >
+                        Quitar
+                      </button>
+                    )}
+                  </td>
                 </tr>
               );
             })}
           </tbody>
         </table>
       </div>
+
+      {/* MODAL: Agregar joya olvidada */}
+      {modalAgregar && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white max-w-lg w-full p-6 max-h-[90vh] overflow-y-auto">
+            <h3 className="text-xl font-light text-gray-900 mb-2">
+              Agregar Joya Olvidada
+            </h3>
+            <p className="text-sm text-gray-500 mb-6">
+              Busca por código o nombre. Se descontará el stock igual que si se
+              hubiera incluido desde el inicio del préstamo.
+            </p>
+
+            <div className="flex gap-3 mb-4">
+              <input
+                type="text"
+                value={codigoBusqueda}
+                onChange={(e) => setCodigoBusqueda(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleBuscarJoya()}
+                placeholder="Ej: ANPLAR710"
+                autoFocus
+                className="flex-1 px-3 py-2 border border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-900"
+              />
+              <button
+                onClick={handleBuscarJoya}
+                disabled={buscandoJoya}
+                className="px-4 py-2 bg-gray-900 text-white text-sm uppercase tracking-wider hover:bg-gray-800 transition-colors disabled:bg-gray-400"
+              >
+                {buscandoJoya ? "Buscando..." : "Buscar"}
+              </button>
+            </div>
+
+            {busquedaHecha && (
+              <div className="border border-gray-200 mb-6 max-h-72 overflow-y-auto">
+                {resultadosBusqueda.length === 0 ? (
+                  <p className="text-gray-500 text-sm text-center py-6">
+                    No se encontraron joyas con stock disponible
+                  </p>
+                ) : (
+                  resultadosBusqueda.map((producto) => (
+                    <div
+                      key={producto.id}
+                      className="flex items-center justify-between px-4 py-3 border-b border-gray-100 last:border-0 hover:bg-gray-50"
+                    >
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">
+                          {producto.codigo} — {producto.nombre_comercial}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {producto.material} · Stock: {producto.stock} ·{" "}
+                          {formatPrice(calcularPrecio(producto))}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => handleAgregarJoya(producto)}
+                        disabled={procesando}
+                        className="px-3 py-1 bg-gray-900 text-white text-xs uppercase tracking-wider hover:bg-gray-700 transition-colors disabled:opacity-40 flex-shrink-0 ml-3"
+                      >
+                        Agregar
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+
+            <button
+              onClick={() => {
+                setModalAgregar(false);
+                setCodigoBusqueda("");
+                setResultadosBusqueda([]);
+                setBusquedaHecha(false);
+              }}
+              className="w-full py-3 border border-gray-300 text-gray-700 text-sm uppercase tracking-wider hover:bg-gray-50"
+            >
+              Cerrar
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
