@@ -3,6 +3,8 @@ import Footer from "@/components/ui/Footer";
 import ProductDetail from "@/components/catalogo/ProductDetail";
 import { getProductoById } from "@/lib/supabase/client";
 
+export const revalidate = 60;
+
 const calcularPrecio = (prod) => {
   if (!prod.peso || !prod.factor || !prod.factor.valor) return 0;
   return parseFloat(prod.peso) * parseFloat(prod.factor.valor);
@@ -14,9 +16,13 @@ const redondearPrecio = (precio) => {
 };
 
 export async function generateMetadata({ params }) {
+  const { id } = await params;
+
   try {
     const producto = await getProductoById(id);
+
     const precioFinal = redondearPrecio(calcularPrecio(producto));
+
     const imagenesOG = producto.imagen_url
       ? [
           {
