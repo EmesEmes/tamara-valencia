@@ -326,6 +326,9 @@ export default function NuevoPrestamoPage() {
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase">
+                      #
+                    </th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase">
                       Código
                     </th>
                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase">
@@ -396,6 +399,9 @@ export default function NuevoPrestamoPage() {
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase">
+                  #
+                </th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase">
                   Código
                 </th>
                 <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase">
@@ -408,8 +414,9 @@ export default function NuevoPrestamoPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {seleccionados.map((p) => (
+              {seleccionados.map((p, index) => (
                 <tr key={p.id_producto}>
+                  <td className="px-4 py-2 text-gray-500">{index + 1}</td>
                   <td className="px-4 py-2 text-gray-900">{p.codigo}</td>
                   <td className="px-4 py-2 text-gray-900">{p.nombre}</td>
                   <td className="px-4 py-2">

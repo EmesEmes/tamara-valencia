@@ -3,7 +3,9 @@ import { use, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getVentaById, cambiarEstadoVenta } from "@/lib/supabase/ventas";
+import { getCuentaPorCliente } from "@/lib/supabase/cuentas";
 import { formatPrice } from "@/utils/formatters";
+import { descargarVentaPDF } from "@/lib/pdf/venta";
 import LoadingSpinner from "@/components/shared/LoadingSpinner";
 
 const VIAS_LABEL = {
@@ -49,6 +51,19 @@ export default function DetalleVentaPage({ params }) {
     }
   };
 
+  const handleDescargarPDF = async () => {
+    try {
+      let cuenta = null;
+      if (venta.es_credito && venta.cliente?.id) {
+        cuenta = await getCuentaPorCliente(venta.cliente.id);
+      }
+      await descargarVentaPDF(venta, cuenta);
+    } catch (error) {
+      console.error("Error al generar el PDF:", error);
+      alert("Error al generar el PDF: " + error.message);
+    }
+  };
+
   if (isLoading) return <LoadingSpinner />;
   if (!venta)
     return (
@@ -68,9 +83,17 @@ export default function DetalleVentaPage({ params }) {
         </button>
       </div>
 
-      <h1 className="font-elegant text-4xl font-light text-gray-900 mb-8">
-        Detalle de Venta
-      </h1>
+      <div className="flex items-center justify-between mb-8">
+        <h1 className="font-elegant text-4xl font-light text-gray-900">
+          Detalle de Venta
+        </h1>
+        <button
+          onClick={handleDescargarPDF}
+          className="text-sm text-blue-600 hover:text-blue-900"
+        >
+          Descargar PDF
+        </button>
+      </div>
 
       {/* Info general */}
       <div className="bg-white border border-gray-200 p-6 mb-6">
@@ -163,17 +186,32 @@ export default function DetalleVentaPage({ params }) {
 
       {/* Productos */}
       <div className="bg-white border border-gray-200 p-6 mb-6">
-        <h2 className="text-lg font-medium text-gray-900 mb-4 uppercase tracking-wider">
-          Productos
-        </h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-medium text-gray-900 uppercase tracking-wider">
+            Productos
+          </h2>
+          <span className="text-sm text-gray-500">
+            {venta.detalle?.reduce((sum, item) => sum + item.cantidad, 0) || 0}{" "}
+            joyas
+          </span>
+        </div>
         <table className="w-full text-sm">
           <thead className="bg-gray-50 border-b border-gray-200">
             <tr>
+              <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase">
+                #
+              </th>
               <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase">
                 Código
               </th>
               <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase">
                 Producto
+              </th>
+              <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase">
+                Descripción
+              </th>
+              <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase">
+                Material
               </th>
               <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase">
                 Precio
@@ -187,13 +225,23 @@ export default function DetalleVentaPage({ params }) {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {venta.detalle?.map((item) => (
+            {venta.detalle?.map((item, index) => (
               <tr key={item.id}>
+                <td className="px-4 py-2 text-gray-500">{index + 1}</td>
                 <td className="px-4 py-2 text-gray-600">
-                  {item.producto?.codigo}
+                  {item.producto?.codigo || "-"}
                 </td>
                 <td className="px-4 py-2 text-gray-900">
-                  {item.producto?.nombre_comercial}
+                  {item.producto?.nombre_comercial ||
+                    item.descripcion_manual ||
+                    "-"}
+                </td>
+                <td className="px-4 py-2 text-gray-600">
+                  {item.producto?.descripcion ||
+                    (!item.producto ? "Ítem manual" : "-")}
+                </td>
+                <td className="px-4 py-2 text-gray-600 capitalize">
+                  {item.producto?.material || "-"}
                 </td>
                 <td className="px-4 py-2 text-gray-900">
                   {formatPrice(item.precio_unitario)}

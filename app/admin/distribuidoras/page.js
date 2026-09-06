@@ -62,6 +62,9 @@ export default function DistribuidorasPage() {
           <thead className="bg-gray-50">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                #
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Nombre
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -79,8 +82,11 @@ export default function DistribuidorasPage() {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {distribuidoras.map((dist) => (
+            {distribuidoras.map((dist, index) => (
               <tr key={dist.id} className="hover:bg-gray-50">
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  {index + 1}
+                </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <Link
                     href={`/admin/distribuidoras/${dist.id}`}

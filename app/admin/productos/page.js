@@ -596,6 +596,9 @@ export default function ProductosAdminPage() {
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                    #
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                     Imagen
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
@@ -640,10 +643,11 @@ export default function ProductosAdminPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {productos.map((producto) => {
+                {productos.map((producto, index) => {
                   const precio = calcularPrecio(producto.peso, producto.factor);
                   return (
                     <tr key={producto.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 text-gray-500">{index + 1}</td>
                       <td className="px-6 py-4">
                         <div className="relative w-48 h-48 bg-gray-100">
                           {producto.imagen_url ? (

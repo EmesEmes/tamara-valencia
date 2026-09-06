@@ -72,6 +72,9 @@ export default function PrestamosPage() {
           <thead className="bg-gray-50 border-b border-gray-200">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                #
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                 Distribuidora
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
@@ -89,8 +92,9 @@ export default function PrestamosPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
-            {prestamos.map((prestamo) => (
+            {prestamos.map((prestamo, index) => (
               <tr key={prestamo.id} className="hover:bg-gray-50">
+                <td className="px-6 py-4 text-sm text-gray-500">{index + 1}</td>
                 <td className="px-6 py-4">
                   <p className="text-sm font-medium text-gray-900">
                     {prestamo.distribuidora?.nombre}

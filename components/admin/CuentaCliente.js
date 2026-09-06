@@ -51,9 +51,6 @@ const TIPO_MOV = {
   saldo_inicial: { texto: "Saldo inicial", cls: "text-gray-900" },
 };
 
-// Evita que se escriban más de 2 decimales en los campos de dinero.
-// step="0.01" en un <input type="number"> solo afecta las flechitas,
-// no impide teclear manualmente algo como "123123.123123".
 const limitarDecimales = (valor) => {
   if (valor === "") return valor;
   return /^\d*\.?\d{0,2}$/.test(valor) ? valor : valor.slice(0, -1);
@@ -63,11 +60,9 @@ export default function CuentaCliente({ cliente }) {
   const queryClient = useQueryClient();
   const [procesando, setProcesando] = useState(false);
 
-  // Modales
   const [modal, setModal] = useState(null); // 'pago' | 'cuota' | 'movimiento' | 'ajuste'
   const [periodoAjustar, setPeriodoAjustar] = useState(null);
 
-  // Formularios
   const [formApertura, setFormApertura] = useState({
     cuota_mensual: "",
     dia_pago: "1",
@@ -115,8 +110,6 @@ export default function CuentaCliente({ cliente }) {
     enabled: !!cuenta?.id,
   });
 
-  // Al abrir la ficha: generar los meses que falten y dejar los saldos
-  // encadenados en orden cronológico
   useEffect(() => {
     if (cuenta?.id && cuenta.estado === "activa") {
       Promise.all([
@@ -133,9 +126,6 @@ export default function CuentaCliente({ cliente }) {
           queryClient.invalidateQueries({
             queryKey: ["cuenta-cliente", cliente.id],
           });
-          // La pantalla de "Cuentas por Cobrar" cachea los resultados por
-          // mes; si aquí se acaban de generar meses nuevos, hay que avisarle
-          // para que no se quede mostrando "no hay nada" desde antes.
           queryClient.invalidateQueries({ queryKey: ["cobros-mes"] });
         })
         .catch((e) => console.error("Error al preparar la cuenta:", e));
@@ -156,8 +146,6 @@ export default function CuentaCliente({ cliente }) {
     const [a, m, d] = fecha.split("-");
     return `${d}/${m}/${a}`;
   };
-
-  // ============ ACCIONES ============
 
   const handleAbrirCuenta = async () => {
     if (
@@ -293,8 +281,6 @@ export default function CuentaCliente({ cliente }) {
     }
   };
 
-  // ============ RENDER ============
-
   if (cuentaLoading) {
     return (
       <div className="bg-white border border-gray-200 p-6 mb-10">
@@ -303,7 +289,6 @@ export default function CuentaCliente({ cliente }) {
     );
   }
 
-  // --- Sin cuenta: formulario de apertura ---
   if (!cuenta) {
     return (
       <div className="bg-white border border-gray-200 p-6 mb-10">
@@ -417,7 +402,6 @@ export default function CuentaCliente({ cliente }) {
     );
   }
 
-  // --- Con cuenta ---
   const saldo = parseFloat(cuenta.saldo) || 0;
   const cuota = parseFloat(cuenta.cuota_mensual) || 0;
   const mesesRestantes = cuota > 0 ? Math.ceil(saldo / cuota) : 0;
@@ -436,7 +420,6 @@ export default function CuentaCliente({ cliente }) {
         </button>
       </div>
 
-      {/* Resumen */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
         <div className="bg-gradient-to-br from-orange-50 to-orange-100 border border-orange-200 p-4">
           <p className="text-xs text-orange-800 uppercase tracking-wider mb-1 font-medium">
@@ -470,7 +453,6 @@ export default function CuentaCliente({ cliente }) {
         </div>
       </div>
 
-      {/* Acciones */}
       <div className="flex flex-wrap gap-3 mb-6">
         <button
           onClick={() => setModal("pago")}
@@ -495,7 +477,6 @@ export default function CuentaCliente({ cliente }) {
         </button>
       </div>
 
-      {/* Control mes a mes */}
       <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-3">
         Control de Cuotas
       </h3>
@@ -511,6 +492,9 @@ export default function CuentaCliente({ cliente }) {
           <table className="w-full text-sm">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase">
+                  #
+                </th>
                 <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase">
                   Mes
                 </th>
@@ -530,7 +514,7 @@ export default function CuentaCliente({ cliente }) {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {periodos.map((p) => {
+              {periodos.map((p, index) => {
                 const est =
                   ESTADO_PERIODO[p.estado] || ESTADO_PERIODO.pendiente;
                 const puedeAjustar = ["pendiente", "parcial", "mora"].includes(
@@ -538,6 +522,7 @@ export default function CuentaCliente({ cliente }) {
                 );
                 return (
                   <tr key={p.id} className="hover:bg-gray-50">
+                    <td className="px-4 py-2 text-gray-500">{index + 1}</td>
                     <td className="px-4 py-2 text-gray-900">
                       {MESES[p.mes - 1]} {p.anio}
                     </td>
@@ -592,7 +577,6 @@ export default function CuentaCliente({ cliente }) {
         )}
       </div>
 
-      {/* Estado de cuenta (movimientos) */}
       <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-3">
         Estado de Cuenta
       </h3>
@@ -605,6 +589,9 @@ export default function CuentaCliente({ cliente }) {
           <table className="w-full text-sm">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase">
+                  #
+                </th>
                 <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase">
                   Fecha
                 </th>
@@ -623,10 +610,11 @@ export default function CuentaCliente({ cliente }) {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {movimientos.map((mov) => {
+              {movimientos.map((mov, index) => {
                 const tipo = TIPO_MOV[mov.tipo] || TIPO_MOV.cargo;
                 return (
                   <tr key={mov.id} className="hover:bg-gray-50">
+                    <td className="px-4 py-2 text-gray-500">{index + 1}</td>
                     <td className="px-4 py-2 text-gray-600">
                       {formatFecha(mov.fecha)}
                     </td>
@@ -653,7 +641,6 @@ export default function CuentaCliente({ cliente }) {
         )}
       </div>
 
-      {/* Historial de cambios de cuota */}
       {historialCuotas.length > 0 && (
         <>
           <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-3">
@@ -663,6 +650,9 @@ export default function CuentaCliente({ cliente }) {
             <table className="w-full text-sm">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase">
+                    #
+                  </th>
                   <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase">
                     Fecha
                   </th>
@@ -678,8 +668,9 @@ export default function CuentaCliente({ cliente }) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {historialCuotas.map((h) => (
+                {historialCuotas.map((h, index) => (
                   <tr key={h.id}>
+                    <td className="px-4 py-2 text-gray-500">{index + 1}</td>
                     <td className="px-4 py-2 text-gray-600">
                       {formatFecha(h.fecha_cambio)}
                     </td>
@@ -700,11 +691,9 @@ export default function CuentaCliente({ cliente }) {
         </>
       )}
 
-      {/* ============ MODALES ============ */}
       {modal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white max-w-lg w-full p-6 max-h-[90vh] overflow-y-auto">
-            {/* Registrar pago */}
             {modal === "pago" && (
               <>
                 <h3 className="text-xl font-light text-gray-900 mb-6">
@@ -780,7 +769,6 @@ export default function CuentaCliente({ cliente }) {
               </>
             )}
 
-            {/* Cambiar cuota */}
             {modal === "cuota" && (
               <>
                 <h3 className="text-xl font-light text-gray-900 mb-2">
@@ -849,7 +837,6 @@ export default function CuentaCliente({ cliente }) {
               </>
             )}
 
-            {/* Movimiento manual */}
             {modal === "movimiento" && (
               <>
                 <h3 className="text-xl font-light text-gray-900 mb-2">
@@ -955,7 +942,6 @@ export default function CuentaCliente({ cliente }) {
               </>
             )}
 
-            {/* Ajustar mes */}
             {modal === "ajuste" && periodoAjustar && (
               <>
                 <h3 className="text-xl font-light text-gray-900 mb-2">
