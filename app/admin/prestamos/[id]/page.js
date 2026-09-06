@@ -309,7 +309,7 @@ export default function DetallePrestamoPage({ params }) {
               onClick={() => setModalAgregar(true)}
               className="text-sm text-gray-700 hover:text-gray-900 underline"
             >
-              + Agregar joya al préstamo
+              + Agregar joya olvidada
             </button>
           )}
           <button
@@ -419,6 +419,9 @@ export default function DetallePrestamoPage({ params }) {
         <table className="w-full text-sm">
           <thead className="bg-gray-50 border-b border-gray-200">
             <tr>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">
+                #
+              </th>
               <th className="px-4 py-3 w-10">
                 {itemsPrestados.length > 0 && (
                   <input
@@ -454,10 +457,11 @@ export default function DetallePrestamoPage({ params }) {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {prestamo.detalle?.map((item) => {
+            {prestamo.detalle?.map((item, index) => {
               const esPrestado = item.estado_item === "prestado";
               return (
                 <tr key={item.id} className="hover:bg-gray-50">
+                  <td className="px-4 py-3 text-gray-500">{index + 1}</td>
                   <td className="px-4 py-3">
                     {esPrestado && (
                       <input

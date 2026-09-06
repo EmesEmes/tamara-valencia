@@ -17,6 +17,11 @@ const VIAS_VENTA = [
   { value: "cuenta_gerencia", label: "Cuenta Gerencia" },
 ];
 
+const limitarDecimales = (valor) => {
+  if (valor === "") return valor;
+  return /^\d*\.?\d{0,2}$/.test(valor) ? valor : valor.slice(0, -1);
+};
+
 export default function VentaHistoricaPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -40,6 +45,62 @@ export default function VentaHistoricaPage() {
   const [fechaPrimerPago, setFechaPrimerPago] = useState("");
 
   const [guardando, setGuardando] = useState(false);
+  const [borradorCargado, setBorradorCargado] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const raw = localStorage.getItem("venta_historica_borrador");
+    if (raw) {
+      try {
+        const data = JSON.parse(raw);
+        if (data.fecha) setFecha(data.fecha);
+        if (data.total) setTotal(data.total);
+        if (data.via) setVia(data.via);
+        if (data.distribuidoraId) setDistribuidoraId(data.distribuidoraId);
+        if (data.descripcion) setDescripcion(data.descripcion);
+        if (data.clienteSeleccionado)
+          setClienteSeleccionado(data.clienteSeleccionado);
+        if (data.esCredito) setEsCredito(data.esCredito);
+        if (data.cuotaMensual) setCuotaMensual(data.cuotaMensual);
+        if (data.diaPago) setDiaPago(data.diaPago);
+        if (data.fechaPrimerPago) setFechaPrimerPago(data.fechaPrimerPago);
+      } catch (e) {
+        console.error("Error al restaurar borrador:", e);
+      }
+    }
+    setBorradorCargado(true);
+  }, []);
+
+  useEffect(() => {
+    if (!borradorCargado || typeof window === "undefined") return;
+    localStorage.setItem(
+      "venta_historica_borrador",
+      JSON.stringify({
+        fecha,
+        total,
+        via,
+        distribuidoraId,
+        descripcion,
+        clienteSeleccionado,
+        esCredito,
+        cuotaMensual,
+        diaPago,
+        fechaPrimerPago,
+      }),
+    );
+  }, [
+    borradorCargado,
+    fecha,
+    total,
+    via,
+    distribuidoraId,
+    descripcion,
+    clienteSeleccionado,
+    esCredito,
+    cuotaMensual,
+    diaPago,
+    fechaPrimerPago,
+  ]);
 
   const { data: distribuidoras = [] } = useQuery({
     queryKey: ["distribuidoras-activas"],
@@ -156,6 +217,7 @@ export default function VentaHistoricaPage() {
       });
 
       alert("Registro histórico guardado exitosamente");
+      localStorage.removeItem("venta_historica_borrador");
       queryClient.invalidateQueries({ queryKey: ["ventas"] });
       router.push("/admin/ventas");
     } catch (error) {
@@ -210,7 +272,7 @@ export default function VentaHistoricaPage() {
             <input
               type="number"
               value={total}
-              onChange={(e) => setTotal(e.target.value)}
+              onChange={(e) => setTotal(limitarDecimales(e.target.value))}
               placeholder="0.00"
               min="0"
               step="0.01"
@@ -419,7 +481,9 @@ export default function VentaHistoricaPage() {
                   <input
                     type="number"
                     value={cuotaMensual}
-                    onChange={(e) => setCuotaMensual(e.target.value)}
+                    onChange={(e) =>
+                      setCuotaMensual(limitarDecimales(e.target.value))
+                    }
                     placeholder="Ej: 200"
                     min="1"
                     step="0.01"

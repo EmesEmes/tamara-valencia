@@ -27,7 +27,6 @@ const MESES = [
   "Diciembre",
 ];
 
-// Estilos del semáforo
 const SEMAFORO = {
   verde: {
     dot: "bg-green-500",
@@ -130,7 +129,6 @@ export default function CuentasPage() {
         Cuentas por Cobrar
       </h1>
 
-      {/* ============ COBROS DEL MES ============ */}
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wider">
           Cobros de {MESES[mes - 1]} {anio}
@@ -162,7 +160,6 @@ export default function CuentasPage() {
         </div>
       </div>
 
-      {/* Resumen del mes */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <div className="bg-white border border-gray-200 p-4">
           <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">
@@ -198,7 +195,6 @@ export default function CuentasPage() {
         </div>
       </div>
 
-      {/* Tabla de cobros */}
       <div className="bg-white border border-gray-200 overflow-hidden mb-12">
         {cobrosLoading ? (
           <div className="py-12">
@@ -214,6 +210,9 @@ export default function CuentasPage() {
           <table className="w-full text-sm">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                  #
+                </th>
                 <th className="px-4 py-3 w-8"></th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                   Cliente
@@ -240,7 +239,7 @@ export default function CuentasPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {cobros.map((periodo) => {
+              {cobros.map((periodo, index) => {
                 const sem = calcularSemaforo(periodo);
                 const estilo = SEMAFORO[sem] || SEMAFORO.verde;
                 const esperado = parseFloat(periodo.monto_esperado) || 0;
@@ -255,6 +254,7 @@ export default function CuentasPage() {
                     key={periodo.id}
                     className={`${estilo.fila} hover:bg-gray-50`}
                   >
+                    <td className="px-4 py-3 text-gray-500">{index + 1}</td>
                     <td className="px-4 py-3">
                       <span
                         className={`inline-block w-3 h-3 rounded-full ${estilo.dot}`}
@@ -330,7 +330,6 @@ export default function CuentasPage() {
         )}
       </div>
 
-      {/* ============ TODAS LAS CUENTAS ============ */}
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wider">
           Todas las Cuentas
@@ -360,6 +359,9 @@ export default function CuentasPage() {
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                  #
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                   Cliente
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
@@ -378,12 +380,13 @@ export default function CuentasPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {cuentas.map((cuenta) => {
+              {cuentas.map((cuenta, index) => {
                 const saldo = parseFloat(cuenta.saldo) || 0;
                 const cuota = parseFloat(cuenta.cuota_mensual) || 0;
                 const meses = cuota > 0 ? Math.ceil(saldo / cuota) : 0;
                 return (
                   <tr key={cuenta.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 text-gray-500">{index + 1}</td>
                     <td className="px-6 py-4">
                       <p className="font-medium text-gray-900">
                         {cuenta.cliente?.nombre}

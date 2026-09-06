@@ -432,6 +432,9 @@ export default function ReportesPage() {
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase">
+                      #
+                    </th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase">
                       Distribuidora
                     </th>
                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase">
@@ -452,8 +455,9 @@ export default function ReportesPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {porDistribuidora.map((d) => (
+                  {porDistribuidora.map((d, index) => (
                     <tr key={d.id} className="hover:bg-gray-50">
+                      <td className="px-4 py-2 text-gray-500">{index + 1}</td>
                       <td className="px-4 py-2 font-medium text-gray-900">
                         {d.nombre}
                       </td>
@@ -616,6 +620,9 @@ export default function ReportesPage() {
                   <thead className="bg-gray-50 border-b border-gray-200">
                     <tr>
                       <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase">
+                        #
+                      </th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase">
                         Cliente
                       </th>
                       <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase">
@@ -627,8 +634,9 @@ export default function ReportesPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
-                    {comportamiento.topClientes.map((c) => (
+                    {comportamiento.topClientes.map((c, index) => (
                       <tr key={c.id} className="hover:bg-gray-50">
+                        <td className="px-4 py-2 text-gray-500">{index + 1}</td>
                         <td className="px-4 py-2">
                           <Link
                             href={`/admin/clientes/${c.id}`}
@@ -668,6 +676,9 @@ export default function ReportesPage() {
                     <thead className="bg-gray-50 border-b border-gray-200">
                       <tr>
                         <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase">
+                          #
+                        </th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase">
                           Cliente
                         </th>
                         <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase">
@@ -679,8 +690,11 @@ export default function ReportesPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
-                      {comportamiento.inactivos.map((c) => (
+                      {comportamiento.inactivos.map((c, index) => (
                         <tr key={c.id} className="hover:bg-gray-50">
+                          <td className="px-4 py-2 text-gray-500">
+                            {index + 1}
+                          </td>
                           <td className="px-4 py-2">
                             <Link
                               href={`/admin/clientes/${c.id}`}
@@ -742,6 +756,9 @@ export default function ReportesPage() {
           <thead className="bg-gray-50 border-b border-gray-200">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                #
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                 Mes
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
@@ -763,6 +780,7 @@ export default function ReportesPage() {
 
               return (
                 <tr key={mes} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 text-sm text-gray-500">{mes}</td>
                   <td className="px-6 py-4 text-sm font-medium text-gray-900">
                     {nombreMes}
                   </td>

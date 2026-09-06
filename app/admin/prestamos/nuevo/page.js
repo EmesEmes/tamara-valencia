@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase/client";
@@ -19,6 +19,23 @@ export default function NuevoPrestamoPage() {
   const [distribuidoraId, setDistribuidoraId] = useState("");
   const [notas, setNotas] = useState("");
   const [guardando, setGuardando] = useState(false);
+  const [borradorCargado, setBorradorCargado] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const raw = localStorage.getItem("prestamo_nuevo_borrador");
+    if (raw) {
+      try {
+        const data = JSON.parse(raw);
+        if (data.distribuidoraId) setDistribuidoraId(data.distribuidoraId);
+        if (data.notas) setNotas(data.notas);
+        if (data.seleccionados?.length) setSeleccionados(data.seleccionados);
+      } catch (e) {
+        console.error("Error al restaurar borrador:", e);
+      }
+    }
+    setBorradorCargado(true);
+  }, []);
 
   // Búsqueda de productos
   const [filtros, setFiltros] = useState({
@@ -34,6 +51,14 @@ export default function NuevoPrestamoPage() {
 
   // Productos seleccionados para el préstamo
   const [seleccionados, setSeleccionados] = useState([]);
+
+  useEffect(() => {
+    if (!borradorCargado || typeof window === "undefined") return;
+    localStorage.setItem(
+      "prestamo_nuevo_borrador",
+      JSON.stringify({ distribuidoraId, notas, seleccionados }),
+    );
+  }, [borradorCargado, distribuidoraId, notas, seleccionados]);
 
   const { data: distribuidoras = [] } = useQuery({
     queryKey: ["distribuidoras-activas"],
@@ -170,6 +195,7 @@ export default function NuevoPrestamoPage() {
       });
 
       alert("Préstamo registrado exitosamente");
+      localStorage.removeItem("prestamo_nuevo_borrador");
       queryClient.invalidateQueries({ queryKey: ["prestamos"] });
       queryClient.invalidateQueries({ queryKey: ["admin-productos"] });
       router.push("/admin/prestamos");
@@ -326,6 +352,9 @@ export default function NuevoPrestamoPage() {
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase">
+                      #
+                    </th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase">
                       Código
                     </th>
                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase">
@@ -396,6 +425,9 @@ export default function NuevoPrestamoPage() {
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase">
+                  #
+                </th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase">
                   Código
                 </th>
                 <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase">
@@ -408,8 +440,9 @@ export default function NuevoPrestamoPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {seleccionados.map((p) => (
+              {seleccionados.map((p, index) => (
                 <tr key={p.id_producto}>
+                  <td className="px-4 py-2 text-gray-500">{index + 1}</td>
                   <td className="px-4 py-2 text-gray-900">{p.codigo}</td>
                   <td className="px-4 py-2 text-gray-900">{p.nombre}</td>
                   <td className="px-4 py-2">

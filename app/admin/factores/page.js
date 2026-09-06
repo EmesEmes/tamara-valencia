@@ -1,8 +1,8 @@
-'use client';
-import { useState, useEffect } from 'react';
-import { getFactores, deleteFactor } from '@/lib/supabase/client';
-import Link from 'next/link';
-import LoadingSpinner from '@/components/shared/LoadingSpinner';
+"use client";
+import { useState, useEffect } from "react";
+import { getFactores, deleteFactor } from "@/lib/supabase/client";
+import Link from "next/link";
+import LoadingSpinner from "@/components/shared/LoadingSpinner";
 
 export default function FactoresAdminPage() {
   const [factores, setFactores] = useState([]);
@@ -18,8 +18,8 @@ export default function FactoresAdminPage() {
       const data = await getFactores();
       setFactores(data);
     } catch (error) {
-      console.error('Error al cargar factores:', error);
-      alert('Error al cargar los factores');
+      console.error("Error al cargar factores:", error);
+      alert("Error al cargar los factores");
     } finally {
       setLoading(false);
     }
@@ -28,19 +28,21 @@ export default function FactoresAdminPage() {
   const handleDelete = async (id, nombre) => {
     // Confirmar eliminación
     const confirmar = window.confirm(
-      `¿Estás seguro de eliminar el factor "${nombre}"?\n\n⚠️ ADVERTENCIA: Esta acción puede afectar los productos que usan este factor.`
+      `¿Estás seguro de eliminar el factor "${nombre}"?\n\n⚠️ ADVERTENCIA: Esta acción puede afectar los productos que usan este factor.`,
     );
-    
+
     if (!confirmar) return;
 
     try {
       await deleteFactor(id);
-      alert('Factor eliminado exitosamente');
+      alert("Factor eliminado exitosamente");
       // Recargar la lista
       fetchFactores();
     } catch (error) {
-      console.error('Error al eliminar factor:', error);
-      alert('Error al eliminar el factor. Puede que haya productos asociados a este factor.');
+      console.error("Error al eliminar factor:", error);
+      alert(
+        "Error al eliminar el factor. Puede que haya productos asociados a este factor.",
+      );
     }
   };
 
@@ -67,6 +69,9 @@ export default function FactoresAdminPage() {
           <thead className="bg-gray-50">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                #
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Nombre
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -78,8 +83,11 @@ export default function FactoresAdminPage() {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {factores.map((factor) => (
+            {factores.map((factor, index) => (
               <tr key={factor.id} className="hover:bg-gray-50">
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  {index + 1}
+                </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span className="text-sm font-medium text-gray-900">
                     {factor.nombre}

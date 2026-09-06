@@ -23,6 +23,8 @@ export default function CatalogoContent() {
       precioMin: searchParams.get("precioMin") || "",
       precioMax: searchParams.get("precioMax") || "",
       codigo: searchParams.get("codigo") || "",
+      talla: searchParams.get("talla") || "",
+      orden: searchParams.get("orden") || "",
     }),
     [searchParams],
   );
@@ -43,6 +45,8 @@ export default function CatalogoContent() {
       if (newFilters.precioMin) params.set("precioMin", newFilters.precioMin);
       if (newFilters.precioMax) params.set("precioMax", newFilters.precioMax);
       if (newFilters.codigo) params.set("codigo", newFilters.codigo);
+      if (newFilters.talla) params.set("talla", newFilters.talla);
+      if (newFilters.orden) params.set("orden", newFilters.orden);
 
       // Reset a página 1 al cambiar filtros
       params.set("page", "1");
@@ -106,11 +110,13 @@ export default function CatalogoContent() {
         </p>
       </div>
 
-      <Filters
-        filters={filters}
-        onFilterChange={handleFilterChange}
-        onClearFilters={handleClearFilters}
-      />
+      <div className="mb-8">
+        <Filters
+          filters={filters}
+          onFilterChange={handleFilterChange}
+          onClearFilters={handleClearFilters}
+        />
+      </div>
 
       <ProductGrid
         conjuntos={conjuntosMostrados}

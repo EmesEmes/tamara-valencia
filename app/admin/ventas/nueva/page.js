@@ -24,6 +24,12 @@ const VIAS_VENTA = [
   { value: "cuenta_gerencia", label: "Cuenta Gerencia" },
 ];
 
+// Evita escribir más de 2 decimales en un campo de dinero
+const limitarDecimales = (valor) => {
+  if (valor === "") return valor;
+  return /^\d*\.?\d{0,2}$/.test(valor) ? valor : valor.slice(0, -1);
+};
+
 export default function NuevaVentaPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -42,6 +48,14 @@ export default function NuevaVentaPage() {
 
   // --- Estado de productos seleccionados ---
   const [productosSeleccionados, setProductosSeleccionados] = useState([]);
+
+  // --- Estado del ítem manual (sin código, ej. mantenimiento, cajitas) ---
+  const [mostrarItemManual, setMostrarItemManual] = useState(false);
+  const [itemManual, setItemManual] = useState({
+    descripcion: "",
+    precio: "",
+    cantidad: "1",
+  });
 
   // --- Estado de cliente ---
   const [busquedaCliente, setBusquedaCliente] = useState("");
@@ -67,6 +81,63 @@ export default function NuevaVentaPage() {
   const [cargandoCuenta, setCargandoCuenta] = useState(false);
   const [notas, setNotas] = useState("");
   const [guardando, setGuardando] = useState(false);
+  const [borradorCargado, setBorradorCargado] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const raw = localStorage.getItem("venta_nueva_borrador");
+    if (raw) {
+      try {
+        const data = JSON.parse(raw);
+        if (data.productosSeleccionados)
+          setProductosSeleccionados(data.productosSeleccionados);
+        if (data.clienteSeleccionado)
+          setClienteSeleccionado(data.clienteSeleccionado);
+        if (data.descuento) setDescuento(data.descuento);
+        if (data.via) setVia(data.via);
+        if (data.distribuidoraId) setDistribuidoraId(data.distribuidoraId);
+        if (data.esCredito) setEsCredito(data.esCredito);
+        if (data.cuotaMensual) setCuotaMensual(data.cuotaMensual);
+        if (data.diaPago) setDiaPago(data.diaPago);
+        if (data.fechaPrimerPago) setFechaPrimerPago(data.fechaPrimerPago);
+        if (data.notas) setNotas(data.notas);
+      } catch (e) {
+        console.error("Error al restaurar borrador:", e);
+      }
+    }
+    setBorradorCargado(true);
+  }, []);
+
+  useEffect(() => {
+    if (!borradorCargado || typeof window === "undefined") return;
+    localStorage.setItem(
+      "venta_nueva_borrador",
+      JSON.stringify({
+        productosSeleccionados,
+        clienteSeleccionado,
+        descuento,
+        via,
+        distribuidoraId,
+        esCredito,
+        cuotaMensual,
+        diaPago,
+        fechaPrimerPago,
+        notas,
+      }),
+    );
+  }, [
+    borradorCargado,
+    productosSeleccionados,
+    clienteSeleccionado,
+    descuento,
+    via,
+    distribuidoraId,
+    esCredito,
+    cuotaMensual,
+    diaPago,
+    fechaPrimerPago,
+    notas,
+  ]);
 
   // Al seleccionar un cliente, revisar si ya tiene cuenta abierta
   useEffect(() => {
@@ -206,31 +277,71 @@ export default function NuevaVentaPage() {
     }
   };
 
-  const quitarProducto = (id_producto) => {
+  const agregarItemManual = () => {
+    const precio = parseFloat(itemManual.precio);
+    const cantidad = parseInt(itemManual.cantidad, 10);
+
+    if (!itemManual.descripcion.trim()) {
+      alert("Escribe una descripción para el ítem");
+      return;
+    }
+    if (isNaN(precio) || precio <= 0) {
+      alert("El precio debe ser un número mayor a 0");
+      return;
+    }
+    if (isNaN(cantidad) || cantidad < 1) {
+      alert("La cantidad debe ser al menos 1");
+      return;
+    }
+
+    setProductosSeleccionados((prev) => [
+      ...prev,
+      {
+        id_producto: null,
+        esManual: true,
+        id_temporal: `manual-${Date.now()}-${Math.random()}`,
+        codigo: null,
+        nombre: itemManual.descripcion.trim(),
+        precio_unitario: precio,
+        cantidad,
+        stock: null,
+      },
+    ]);
+
+    setItemManual({ descripcion: "", precio: "", cantidad: "1" });
+    setMostrarItemManual(false);
+  };
+
+  const quitarProducto = (clave) => {
     setProductosSeleccionados((prev) =>
-      prev.filter((p) => p.id_producto !== id_producto),
+      prev.filter((p) => (p.id_producto || p.id_temporal) !== clave),
     );
   };
 
-  const cambiarCantidad = (id_producto, cantidad) => {
+  const cambiarCantidad = (clave, cantidad) => {
     const producto = productosSeleccionados.find(
-      (p) => p.id_producto === id_producto,
+      (p) => (p.id_producto || p.id_temporal) === clave,
     );
     if (cantidad < 1) return;
-    if (cantidad > producto.stock) {
+    if (!producto.esManual && cantidad > producto.stock) {
       alert(`Solo hay ${producto.stock} unidades disponibles`);
       return;
     }
     setProductosSeleccionados((prev) =>
-      prev.map((p) => (p.id_producto === id_producto ? { ...p, cantidad } : p)),
+      prev.map((p) =>
+        (p.id_producto || p.id_temporal) === clave ? { ...p, cantidad } : p,
+      ),
     );
   };
 
   // --- Cálculos de totales ---
-  const subtotal = productosSeleccionados.reduce(
-    (sum, p) => sum + p.precio_unitario * p.cantidad,
-    0,
-  );
+  const subtotal =
+    Math.round(
+      productosSeleccionados.reduce(
+        (sum, p) => sum + p.precio_unitario * p.cantidad,
+        0,
+      ) * 100,
+    ) / 100;
   const descuentoNum = parseFloat(descuento) || 0;
   const total = Math.max(0, subtotal - descuentoNum);
 
@@ -322,6 +433,8 @@ export default function NuevaVentaPage() {
         },
         detalle: productosSeleccionados.map((p) => ({
           id_producto: p.id_producto,
+          esManual: p.esManual || false,
+          nombre: p.nombre,
           cantidad: p.cantidad,
           precio_unitario: p.precio_unitario,
         })),
@@ -336,6 +449,7 @@ export default function NuevaVentaPage() {
       });
 
       alert("Venta registrada exitosamente");
+      localStorage.removeItem("venta_nueva_borrador");
       queryClient.invalidateQueries({ queryKey: ["ventas"] });
       queryClient.invalidateQueries({ queryKey: ["admin-productos"] });
       router.push("/admin/ventas");
@@ -471,6 +585,9 @@ export default function NuevaVentaPage() {
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase">
+                      #
+                    </th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase">
                       Código
                     </th>
                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase">
@@ -489,13 +606,14 @@ export default function NuevaVentaPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {productosResultado.map((producto) => {
+                  {productosResultado.map((producto, index) => {
                     const precio = calcularPrecio(producto);
                     const yaAgregado = productosSeleccionados.find(
                       (p) => p.id_producto === producto.id,
                     );
                     return (
                       <tr key={producto.id} className="hover:bg-gray-50">
+                        <td className="px-4 py-2 text-gray-500">{index + 1}</td>
                         <td className="px-4 py-2 text-gray-900">
                           {producto.codigo}
                         </td>
@@ -529,6 +647,96 @@ export default function NuevaVentaPage() {
         )}
       </div>
 
+      {/* ÍTEM MANUAL: sin código, precio variable (mantenimiento, cajitas, etc.) */}
+      <div className="bg-white border border-gray-200 p-6 mb-6">
+        {!mostrarItemManual ? (
+          <button
+            onClick={() => setMostrarItemManual(true)}
+            className="text-sm text-blue-600 hover:text-blue-900 underline"
+          >
+            + Agregar ítem sin código (mantenimiento, cajita, servicio...)
+          </button>
+        ) : (
+          <div>
+            <h3 className="text-sm font-medium text-gray-900 mb-4 uppercase tracking-wider">
+              Ítem sin código
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+              <div className="md:col-span-2">
+                <label className="block text-xs text-gray-500 mb-1">
+                  Descripción
+                </label>
+                <input
+                  type="text"
+                  value={itemManual.descripcion}
+                  onChange={(e) =>
+                    setItemManual((prev) => ({
+                      ...prev,
+                      descripcion: e.target.value,
+                    }))
+                  }
+                  placeholder="Ej: Mantenimiento de anillo"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">
+                  Precio
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={itemManual.precio}
+                  onChange={(e) =>
+                    setItemManual((prev) => ({
+                      ...prev,
+                      precio: limitarDecimales(e.target.value),
+                    }))
+                  }
+                  placeholder="$0.00"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">
+                  Cantidad
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  value={itemManual.cantidad}
+                  onChange={(e) =>
+                    setItemManual((prev) => ({
+                      ...prev,
+                      cantidad: e.target.value,
+                    }))
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                />
+              </div>
+            </div>
+            <div className="flex gap-3 mt-4">
+              <button
+                onClick={agregarItemManual}
+                className="px-4 py-2 bg-gray-900 text-white text-sm uppercase tracking-wider hover:bg-gray-800"
+              >
+                Agregar
+              </button>
+              <button
+                onClick={() => {
+                  setMostrarItemManual(false);
+                  setItemManual({ descripcion: "", precio: "", cantidad: "1" });
+                }}
+                className="px-4 py-2 border border-gray-300 text-gray-700 text-sm uppercase tracking-wider hover:bg-gray-50"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* SECCIÓN 2: PRODUCTOS SELECCIONADOS */}
       <div className="bg-white border border-gray-200 p-6 mb-6">
         <h2 className="text-xl font-medium text-gray-900 mb-6 uppercase tracking-wider">
@@ -543,6 +751,9 @@ export default function NuevaVentaPage() {
           <table className="w-full text-sm">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase">
+                  #
+                </th>
                 <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase">
                   Código
                 </th>
@@ -562,9 +773,16 @@ export default function NuevaVentaPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {productosSeleccionados.map((p) => (
-                <tr key={p.id_producto}>
-                  <td className="px-4 py-2 text-gray-900">{p.codigo}</td>
+              {productosSeleccionados.map((p, index) => (
+                <tr key={p.id_producto || p.id_temporal}>
+                  <td className="px-4 py-2 text-gray-500">{index + 1}</td>
+                  <td className="px-4 py-2 text-gray-900">
+                    {p.codigo || (
+                      <span className="text-xs text-gray-400 italic">
+                        Manual
+                      </span>
+                    )}
+                  </td>
                   <td className="px-4 py-2 text-gray-900">{p.nombre}</td>
                   <td className="px-4 py-2 text-gray-900">
                     {formatPrice(p.precio_unitario)}
@@ -573,7 +791,10 @@ export default function NuevaVentaPage() {
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() =>
-                          cambiarCantidad(p.id_producto, p.cantidad - 1)
+                          cambiarCantidad(
+                            p.id_producto || p.id_temporal,
+                            p.cantidad - 1,
+                          )
                         }
                         className="w-7 h-7 border border-gray-300 hover:bg-gray-100 flex items-center justify-center text-gray-700"
                       >
@@ -582,7 +803,10 @@ export default function NuevaVentaPage() {
                       <span className="w-8 text-center">{p.cantidad}</span>
                       <button
                         onClick={() =>
-                          cambiarCantidad(p.id_producto, p.cantidad + 1)
+                          cambiarCantidad(
+                            p.id_producto || p.id_temporal,
+                            p.cantidad + 1,
+                          )
                         }
                         className="w-7 h-7 border border-gray-300 hover:bg-gray-100 flex items-center justify-center text-gray-700"
                       >
@@ -595,7 +819,9 @@ export default function NuevaVentaPage() {
                   </td>
                   <td className="px-4 py-2">
                     <button
-                      onClick={() => quitarProducto(p.id_producto)}
+                      onClick={() =>
+                        quitarProducto(p.id_producto || p.id_temporal)
+                      }
                       className="text-red-600 hover:text-red-900 text-xs uppercase tracking-wider"
                     >
                       Quitar
@@ -781,7 +1007,7 @@ export default function NuevaVentaPage() {
             <input
               type="number"
               value={descuento}
-              onChange={(e) => setDescuento(e.target.value)}
+              onChange={(e) => setDescuento(limitarDecimales(e.target.value))}
               placeholder="0.00"
               min="0"
               max={subtotal}
@@ -952,7 +1178,9 @@ export default function NuevaVentaPage() {
                   <input
                     type="number"
                     value={cuotaMensual}
-                    onChange={(e) => setCuotaMensual(e.target.value)}
+                    onChange={(e) =>
+                      setCuotaMensual(limitarDecimales(e.target.value))
+                    }
                     placeholder="Ej: 200"
                     min="1"
                     step="0.01"

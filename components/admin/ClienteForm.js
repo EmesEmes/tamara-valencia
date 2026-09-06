@@ -14,6 +14,11 @@ export default function ClienteForm({ clienteId = null }) {
   const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
   const [distribuidoras, setDistribuidoras] = useState([]);
+  const [clienteCargado, setClienteCargado] = useState(!clienteId);
+  const [borradorCargado, setBorradorCargado] = useState(false);
+  const storageKey = clienteId
+    ? `cliente_editar_borrador_${clienteId}`
+    : "cliente_nuevo_borrador";
   const [formData, setFormData] = useState({
     nombre: "",
     telefono: "",
@@ -51,12 +56,32 @@ export default function ClienteForm({ clienteId = null }) {
     } catch (error) {
       console.error("Error al cargar cliente:", error);
       alert("Error al cargar el cliente");
+    } finally {
+      setClienteCargado(true);
     }
   }, [clienteId]);
 
   useEffect(() => {
     fetchCliente();
   }, [fetchCliente]);
+
+  useEffect(() => {
+    if (!clienteCargado || typeof window === "undefined") return;
+    const raw = localStorage.getItem(storageKey);
+    if (raw) {
+      try {
+        setFormData(JSON.parse(raw));
+      } catch (e) {
+        console.error("Error al restaurar borrador:", e);
+      }
+    }
+    setBorradorCargado(true);
+  }, [clienteCargado, storageKey]);
+
+  useEffect(() => {
+    if (!borradorCargado || typeof window === "undefined") return;
+    localStorage.setItem(storageKey, JSON.stringify(formData));
+  }, [formData, borradorCargado, storageKey]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -80,6 +105,7 @@ export default function ClienteForm({ clienteId = null }) {
         await createCliente(formData);
         alert("Cliente creado exitosamente");
       }
+      localStorage.removeItem(storageKey);
       queryClient.invalidateQueries({ queryKey: ["clientes-admin"] });
       router.push("/admin/clientes");
     } catch (error) {

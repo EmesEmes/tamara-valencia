@@ -7,9 +7,20 @@ import {
   updateDistribuidora,
 } from "@/lib/supabase/distribuidoras";
 
+const limitarDecimales = (valor) => {
+  if (valor === "") return valor;
+  return /^\d*\.?\d{0,2}$/.test(valor) ? valor : valor.slice(0, -1);
+};
+
 export default function DistribuidoraForm({ distribuidoraId = null }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [distribuidoraCargada, setDistribuidoraCargada] =
+    useState(!distribuidoraId);
+  const [borradorCargado, setBorradorCargado] = useState(false);
+  const storageKey = distribuidoraId
+    ? `distribuidora_editar_borrador_${distribuidoraId}`
+    : "distribuidora_nuevo_borrador";
   const [formData, setFormData] = useState({
     nombre: "",
     telefono: "",
@@ -30,12 +41,32 @@ export default function DistribuidoraForm({ distribuidoraId = null }) {
     } catch (error) {
       console.error("Error al cargar distribuidora:", error);
       alert("Error al cargar la distribuidora");
+    } finally {
+      setDistribuidoraCargada(true);
     }
   }, [distribuidoraId]);
 
   useEffect(() => {
     fetchDistribuidora();
   }, [fetchDistribuidora]);
+
+  useEffect(() => {
+    if (!distribuidoraCargada || typeof window === "undefined") return;
+    const raw = localStorage.getItem(storageKey);
+    if (raw) {
+      try {
+        setFormData(JSON.parse(raw));
+      } catch (e) {
+        console.error("Error al restaurar borrador:", e);
+      }
+    }
+    setBorradorCargado(true);
+  }, [distribuidoraCargada, storageKey]);
+
+  useEffect(() => {
+    if (!borradorCargado || typeof window === "undefined") return;
+    localStorage.setItem(storageKey, JSON.stringify(formData));
+  }, [formData, borradorCargado, storageKey]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -65,6 +96,7 @@ export default function DistribuidoraForm({ distribuidoraId = null }) {
         await createDistribuidora(formData);
         alert("Distribuidora creada exitosamente");
       }
+      localStorage.removeItem(storageKey);
       router.push("/admin/distribuidoras");
     } catch (error) {
       console.error("Error al guardar distribuidora:", error);
@@ -113,7 +145,12 @@ export default function DistribuidoraForm({ distribuidoraId = null }) {
           type="number"
           name="porcentaje_comision"
           value={formData.porcentaje_comision}
-          onChange={handleChange}
+          onChange={(e) =>
+            setFormData((prev) => ({
+              ...prev,
+              porcentaje_comision: limitarDecimales(e.target.value),
+            }))
+          }
           step="0.01"
           min="0"
           max="100"
