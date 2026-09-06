@@ -585,6 +585,9 @@ export default function NuevaVentaPage() {
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase">
+                      #
+                    </th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase">
                       Código
                     </th>
                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase">
@@ -603,13 +606,14 @@ export default function NuevaVentaPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {productosResultado.map((producto) => {
+                  {productosResultado.map((producto, index) => {
                     const precio = calcularPrecio(producto);
                     const yaAgregado = productosSeleccionados.find(
                       (p) => p.id_producto === producto.id,
                     );
                     return (
                       <tr key={producto.id} className="hover:bg-gray-50">
+                        <td className="px-4 py-2 text-gray-500">{index + 1}</td>
                         <td className="px-4 py-2 text-gray-900">
                           {producto.codigo}
                         </td>
@@ -748,6 +752,9 @@ export default function NuevaVentaPage() {
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase">
+                  #
+                </th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase">
                   Código
                 </th>
                 <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase">
@@ -766,8 +773,9 @@ export default function NuevaVentaPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {productosSeleccionados.map((p) => (
+              {productosSeleccionados.map((p, index) => (
                 <tr key={p.id_producto || p.id_temporal}>
+                  <td className="px-4 py-2 text-gray-500">{index + 1}</td>
                   <td className="px-4 py-2 text-gray-900">
                     {p.codigo || (
                       <span className="text-xs text-gray-400 italic">
