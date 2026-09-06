@@ -10,6 +10,11 @@ import {
 } from "@/lib/constants";
 import ImageUploader from "./ImageUploader";
 
+const limitarDecimales = (valor) => {
+  if (valor === "") return valor;
+  return /^\d*\.?\d{0,2}$/.test(valor) ? valor : valor.slice(0, -1);
+};
+
 export default function ProductForm({ producto = null }) {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -17,6 +22,10 @@ export default function ProductForm({ producto = null }) {
   const [conjuntos, setConjuntos] = useState([]);
   const [factores, setFactores] = useState([]);
   const [precioCalculado, setPrecioCalculado] = useState(0);
+  const [borradorCargado, setBorradorCargado] = useState(false);
+  const storageKey = producto
+    ? `producto_editar_borrador_${producto.id}`
+    : "producto_nuevo_borrador";
   const [formData, setFormData] = useState({
     codigo: "",
     tipo: "",
@@ -57,7 +66,24 @@ export default function ProductForm({ producto = null }) {
         stock: producto.stock ?? 1,
       });
     }
-  }, [producto]);
+
+    if (typeof window !== "undefined") {
+      const raw = localStorage.getItem(storageKey);
+      if (raw) {
+        try {
+          setFormData(JSON.parse(raw));
+        } catch (e) {
+          console.error("Error al restaurar borrador:", e);
+        }
+      }
+    }
+    setBorradorCargado(true);
+  }, [producto, storageKey]);
+
+  useEffect(() => {
+    if (!borradorCargado || typeof window === "undefined") return;
+    localStorage.setItem(storageKey, JSON.stringify(formData));
+  }, [formData, borradorCargado, storageKey]);
 
   const fetchConjuntos = async () => {
     try {
@@ -200,6 +226,7 @@ export default function ProductForm({ producto = null }) {
       );
 
       queryClient.invalidateQueries({ queryKey: ["admin-productos"] });
+      localStorage.removeItem(storageKey);
       router.back();
     } catch (error) {
       console.error("Error al guardar producto:", error);
@@ -417,7 +444,12 @@ export default function ProductForm({ producto = null }) {
               type="number"
               name="peso"
               value={formData.peso}
-              onChange={handleChange}
+              onChange={(e) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  peso: limitarDecimales(e.target.value),
+                }))
+              }
               required
               step="0.01"
               min="0"
