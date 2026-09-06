@@ -304,7 +304,7 @@ export default function NuevaVentaPage() {
         nombre: itemManual.descripcion.trim(),
         precio_unitario: precio,
         cantidad,
-        stock: Infinity,
+        stock: null,
       },
     ]);
 
@@ -323,7 +323,7 @@ export default function NuevaVentaPage() {
       (p) => (p.id_producto || p.id_temporal) === clave,
     );
     if (cantidad < 1) return;
-    if (cantidad > producto.stock) {
+    if (!producto.esManual && cantidad > producto.stock) {
       alert(`Solo hay ${producto.stock} unidades disponibles`);
       return;
     }
@@ -335,10 +335,13 @@ export default function NuevaVentaPage() {
   };
 
   // --- Cálculos de totales ---
-  const subtotal = productosSeleccionados.reduce(
-    (sum, p) => sum + p.precio_unitario * p.cantidad,
-    0,
-  );
+  const subtotal =
+    Math.round(
+      productosSeleccionados.reduce(
+        (sum, p) => sum + p.precio_unitario * p.cantidad,
+        0,
+      ) * 100,
+    ) / 100;
   const descuentoNum = parseFloat(descuento) || 0;
   const total = Math.max(0, subtotal - descuentoNum);
 
