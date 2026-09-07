@@ -98,6 +98,25 @@ export default function CuentasPage() {
     staleTime: 2 * 60 * 1000,
   });
 
+  const [ordenCobros, setOrdenCobros] = useState("alfabetico");
+  const [ordenCuentas, setOrdenCuentas] = useState("alfabetico");
+
+  const cobrosOrdenados = [...cobros].sort((a, b) => {
+    if (ordenCobros === "alfabetico") {
+      return (a.cuenta?.cliente?.nombre || "").localeCompare(
+        b.cuenta?.cliente?.nombre || "",
+      );
+    }
+    return new Date(a.fecha_vencimiento) - new Date(b.fecha_vencimiento);
+  });
+
+  const cuentasOrdenadas = [...cuentas].sort((a, b) => {
+    if (ordenCuentas === "alfabetico") {
+      return (a.cliente?.nombre || "").localeCompare(b.cliente?.nombre || "");
+    }
+    return (a.dia_pago || 0) - (b.dia_pago || 0);
+  });
+
   const resumen = resumenCobrosMes(cobros);
 
   const formatFecha = (fecha) => {
@@ -196,6 +215,16 @@ export default function CuentasPage() {
       </div>
 
       <div className="bg-white border border-gray-200 overflow-hidden mb-12">
+        <div className="flex items-center justify-end px-4 py-3 border-b border-gray-200 bg-gray-50">
+          <select
+            value={ordenCobros}
+            onChange={(e) => setOrdenCobros(e.target.value)}
+            className="text-sm border border-gray-300 px-3 py-1.5 bg-white focus:outline-none focus:border-gray-500"
+          >
+            <option value="alfabetico">Orden alfabético</option>
+            <option value="fecha">Por fecha de pago</option>
+          </select>
+        </div>
         {cobrosLoading ? (
           <div className="py-12">
             <LoadingSpinner />
@@ -239,7 +268,7 @@ export default function CuentasPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {cobros.map((periodo, index) => {
+              {cobrosOrdenados.map((periodo, index) => {
                 const sem = calcularSemaforo(periodo);
                 const estilo = SEMAFORO[sem] || SEMAFORO.verde;
                 const esperado = parseFloat(periodo.monto_esperado) || 0;
@@ -343,6 +372,16 @@ export default function CuentasPage() {
       </div>
 
       <div className="bg-white border border-gray-200 overflow-hidden">
+        <div className="flex items-center justify-end px-4 py-3 border-b border-gray-200 bg-gray-50">
+          <select
+            value={ordenCuentas}
+            onChange={(e) => setOrdenCuentas(e.target.value)}
+            className="text-sm border border-gray-300 px-3 py-1.5 bg-white focus:outline-none focus:border-gray-500"
+          >
+            <option value="alfabetico">Orden alfabético</option>
+            <option value="fecha">Por fecha de pago</option>
+          </select>
+        </div>
         {cuentasLoading ? (
           <div className="py-12">
             <LoadingSpinner />
@@ -380,7 +419,7 @@ export default function CuentasPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {cuentas.map((cuenta, index) => {
+              {cuentasOrdenadas.map((cuenta, index) => {
                 const saldo = parseFloat(cuenta.saldo) || 0;
                 const cuota = parseFloat(cuenta.cuota_mensual) || 0;
                 const meses = cuota > 0 ? Math.ceil(saldo / cuota) : 0;

@@ -28,6 +28,15 @@ export default function VentasPage() {
     staleTime: 2 * 60 * 1000,
   });
 
+  const [ordenVentas, setOrdenVentas] = useState("alfabetico");
+
+  const ventasOrdenadas = [...ventas].sort((a, b) => {
+    if (ordenVentas === "alfabetico") {
+      return (a.cliente?.nombre || "").localeCompare(b.cliente?.nombre || "");
+    }
+    return new Date(b.fecha) - new Date(a.fecha);
+  });
+
   const totalVentas = ventas.reduce((sum, v) => sum + parseFloat(v.total), 0);
 
   const formatFecha = (fecha) => {
@@ -144,6 +153,16 @@ export default function VentasPage() {
 
       {/* Tabla de ventas */}
       <div className="bg-white border border-gray-200 overflow-hidden">
+        <div className="flex items-center justify-end px-4 py-3 border-b border-gray-200 bg-gray-50">
+          <select
+            value={ordenVentas}
+            onChange={(e) => setOrdenVentas(e.target.value)}
+            className="text-sm border border-gray-300 px-3 py-1.5 bg-white focus:outline-none focus:border-gray-500"
+          >
+            <option value="alfabetico">Orden alfabético</option>
+            <option value="fecha">Por fecha</option>
+          </select>
+        </div>
         <table className="w-full">
           <thead className="bg-gray-50 border-b border-gray-200">
             <tr>
@@ -174,7 +193,7 @@ export default function VentasPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
-            {ventas.map((venta, index) => (
+            {ventasOrdenadas.map((venta, index) => (
               <tr key={venta.id} className="hover:bg-gray-50">
                 <td className="px-6 py-4 text-sm text-gray-500">{index + 1}</td>
                 <td className="px-6 py-4 text-sm text-gray-900">
