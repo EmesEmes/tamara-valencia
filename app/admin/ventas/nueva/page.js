@@ -6,7 +6,7 @@ import { supabase } from "@/lib/supabase/client";
 import { buscarClientes, createCliente } from "@/lib/supabase/clientes";
 import { getDistribuidoras } from "@/lib/supabase/distribuidoras";
 import { registrarVenta } from "@/lib/supabase/ventas";
-import { getCuentaPorCliente } from "@/lib/supabase/cuentas";
+import { getCuentaPorCliente, hoyStr } from "@/lib/supabase/cuentas";
 import { formatPrice } from "@/utils/formatters";
 import {
   TIPOS_PRODUCTO,
@@ -61,6 +61,7 @@ export default function NuevaVentaPage() {
   const [busquedaCliente, setBusquedaCliente] = useState("");
   const [clientesEncontrados, setClientesEncontrados] = useState([]);
   const [clienteSeleccionado, setClienteSeleccionado] = useState(null);
+  const [fecha, setFecha] = useState(hoyStr());
   const [mostrarFormCliente, setMostrarFormCliente] = useState(false);
   const [nuevoCliente, setNuevoCliente] = useState({
     nombre: "",
@@ -93,6 +94,7 @@ export default function NuevaVentaPage() {
           setProductosSeleccionados(data.productosSeleccionados);
         if (data.clienteSeleccionado)
           setClienteSeleccionado(data.clienteSeleccionado);
+        if (data.fecha) setFecha(data.fecha);
         if (data.descuento) setDescuento(data.descuento);
         if (data.via) setVia(data.via);
         if (data.distribuidoraId) setDistribuidoraId(data.distribuidoraId);
@@ -115,6 +117,7 @@ export default function NuevaVentaPage() {
       JSON.stringify({
         productosSeleccionados,
         clienteSeleccionado,
+        fecha,
         descuento,
         via,
         distribuidoraId,
@@ -129,6 +132,7 @@ export default function NuevaVentaPage() {
     borradorCargado,
     productosSeleccionados,
     clienteSeleccionado,
+    fecha,
     descuento,
     via,
     distribuidoraId,
@@ -422,6 +426,7 @@ export default function NuevaVentaPage() {
       await registrarVenta({
         venta: {
           id_cliente: clienteSeleccionado?.id || null,
+          fecha,
           subtotal,
           descuento: descuentoNum,
           total,
@@ -472,9 +477,25 @@ export default function NuevaVentaPage() {
         </button>
       </div>
 
-      <h1 className="font-elegant text-4xl font-light text-gray-900 mb-10">
+      <h1 className="font-elegant text-4xl font-light text-gray-900 mb-6">
         Nueva Venta
       </h1>
+
+      <div className="bg-white border border-gray-200 p-6 mb-6">
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Fecha de la venta
+        </label>
+        <input
+          type="date"
+          value={fecha}
+          onChange={(e) => setFecha(e.target.value)}
+          className="w-full max-w-xs px-3 py-2 border border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-900"
+        />
+        <p className="text-xs text-gray-500 mt-1">
+          Por defecto es hoy. Cámbiala si estás registrando una venta de un día
+          anterior.
+        </p>
+      </div>
 
       {/* SECCIÓN 1: BUSCAR PRODUCTOS */}
       <div className="bg-white border border-gray-200 p-6 mb-6">
