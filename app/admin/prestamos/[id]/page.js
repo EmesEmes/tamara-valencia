@@ -457,7 +457,7 @@ export default function DetallePrestamoPage({ params }) {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {prestamo.detalle?.map((item, index) => {
+            {itemsPrestados.map((item, index) => {
               const esPrestado = item.estado_item === "prestado";
               return (
                 <tr key={item.id} className="hover:bg-gray-50">
