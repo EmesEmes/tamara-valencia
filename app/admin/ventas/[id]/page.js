@@ -15,6 +15,7 @@ const VIAS_LABEL = {
   distribuidora: "Distribuidora",
   tvcj: "TVCJ",
   cuenta_gerencia: "Cuenta Gerencia",
+  web: "Página Web",
 };
 
 export default function DetalleVentaPage({ params }) {
